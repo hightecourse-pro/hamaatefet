@@ -1,0 +1,8 @@
+{
+  "accounts": [
+    { "key": "admin", "email": "admin.qa@hamaatefet.test", "password": "Maatefet-Admin-2026!", "first_name": "מנהלת", "last_name": "בדיקה", "phone": "050-0000001", "birth_month": "other", "role": "admin", "status": "active" },
+    { "key": "member", "email": "member.qa@hamaatefet.test", "password": "Maatefet-Member-2026!", "first_name": "חברה", "last_name": "בדיקה", "phone": "050-0000002", "birth_month": "this", "role": "member", "status": "active" },
+    { "key": "guest", "email": "guest.qa@hamaatefet.test", "password": "Maatefet-Guest-2026!", "first_name": "אורחת", "last_name": "בדיקה", "phone": "050-0000003", "birth_month": "other", "role": "member", "status": "active" },
+    { "key": "pending", "email": "pending.qa@hamaatefet.test", "password": "Maatefet-Pending-2026!", "first_name": "ממתינה", "last_name": "בדיקה", "phone": "050-0000004", "birth_month": "other", "role": "member", "status": "pending" }
+  ]
+}
