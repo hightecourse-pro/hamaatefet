@@ -1,6 +1,6 @@
 # Deployment
 
-Two Vercel projects (same team as קוד פתוח), two Supabase projects. Deploys go
+Two Vercel projects (same team as קוד פתוח), two Supabase projects in two organizations (Supabase access tokens are organization-scoped, so `.env.deploy.local` holds one token per org – see tools/deploy-helpers.mjs). Deploys go
 through the Vercel CLI from this folder (`tools/deploy.mjs`), so no GitHub
 integration is required; git branches `staging` / `main` track what is where.
 
@@ -9,7 +9,7 @@ integration is required; git branches `staging` / `main` track what is where.
 | | staging | production |
 |---|---|---|
 | Vercel | `hamaatefet-staging` → https://hamaatefet-staging.vercel.app | `hamaatefet` → https://hamaatefet.vercel.app |
-| Supabase | `hamaatefet-staging` (eu-central-1) | `hamaatefet-production` – **to be created in a free organization** |
+| Supabase | `hamaatefet-staging` – Micro in the Pro org (~$10/mo; the owner's cap) | `hamaatefet-production` – FREE org `hamaatefet-prod` (the account's single free slot; the other is קוד פתוח's staging) |
 
 Steps for a new environment:
 

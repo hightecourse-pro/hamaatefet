@@ -15,8 +15,15 @@ Two live environments. **Nothing reaches production without the owner saying yes
 | git branch | `staging` | `main` |
 | holds | QA fixtures, safe to break | real members |
 
-Credentials live in `.env.deploy.local` (gitignored): Supabase access token,
+Credentials live in `.env.deploy.local` (gitignored): two Supabase access tokens
+(tokens are organization-scoped: `SUPABASE_ACCESS_TOKEN` = the free org with
+production, `SUPABASE_ACCESS_TOKEN_PRO` = the Pro org with the Micro staging),
 Vercel token, Resend key, project refs/ids. Every script in `tools/` reads it.
+
+Cost rule (the owner, 14/10): Supabase must not exceed $10/month. Production is
+FREE (keep it alive: the daily /api/health cron touches the DB; there are no
+automatic backups on the free plan). Staging is the one paid Micro. Never create
+a third active project without asking.
 
 ## The loop, every time
 

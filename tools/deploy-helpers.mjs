@@ -1,4 +1,9 @@
 // Shared helpers for the deploy/ops scripts. Reads hamaatefet/.env.deploy.local; never prints secrets.
+//
+// Two Supabase access tokens, because Supabase tokens are organization-scoped:
+//   SUPABASE_ACCESS_TOKEN      → the free org (production project)
+//   SUPABASE_ACCESS_TOKEN_PRO  → the Pro org (the Micro staging project)
+// supa() picks the token from the project ref in the path.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -26,10 +31,18 @@ export function vercelProjectFor(env) {
   return id;
 }
 
-export async function supa(path, init = {}) {
+/** The access token that can see this project. */
+export function tokenFor(ref) {
+  if (ref && ref === ENV.STAGING_REF && ENV.SUPABASE_ACCESS_TOKEN_PRO) return ENV.SUPABASE_ACCESS_TOKEN_PRO;
+  return ENV.SUPABASE_ACCESS_TOKEN;
+}
+
+export async function supa(path, init = {}, token) {
+  const ref = path.match(/\/v1\/projects\/([a-z]{20})/)?.[1];
+  const auth = token ?? tokenFor(ref);
   const r = await fetch(`https://api.supabase.com${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${ENV.SUPABASE_ACCESS_TOKEN}`, "Content-Type": "application/json", ...(init.headers || {}) },
+    headers: { Authorization: `Bearer ${auth}`, "Content-Type": "application/json", ...(init.headers || {}) },
   });
   const text = await r.text();
   let json = null;
