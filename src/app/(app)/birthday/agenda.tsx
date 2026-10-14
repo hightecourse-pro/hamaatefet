@@ -17,7 +17,7 @@ const PALETTE = [
   { color: "#6E0F1A", tint: "#F6DADC" },
 ];
 
-export function Agenda({ items }: { items: AgendaItem[] }) {
+export function Agenda({ items, questionsLabel = "שאלות לדיון" }: { items: AgendaItem[]; questionsLabel?: string }) {
   const [open, setOpen] = useState<number>(items.length > 1 ? 1 : 0);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -44,7 +44,7 @@ export function Agenda({ items }: { items: AgendaItem[] }) {
                 {a.questions.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, borderRight: "4px solid #F0A35E", paddingRight: 14 }}>
                     <span className="hand" style={{ fontSize: 16, color: "#A3304A" }}>
-                      שאלות לדיון
+                      {questionsLabel}
                     </span>
                     {a.questions.map((q, qi) => (
                       <span key={qi} style={{ fontSize: 16 }}>

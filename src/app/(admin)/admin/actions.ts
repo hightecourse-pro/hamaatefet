@@ -8,6 +8,8 @@ import { approvedEmail, pausedEmail, sendEmail } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site";
 import { hebrewToday } from "@/lib/hebrew";
 import { parseAgenda } from "@/lib/agenda";
+import { CONTENT_GROUPS } from "@/lib/content";
+import { sanitizeRich } from "@/lib/rich-text";
 
 export interface AdminState {
   error: string | null;
@@ -91,15 +93,6 @@ export async function deleteMember(id: string): Promise<AdminState> {
 }
 
 // ───────────────────────── forum ─────────────────────────
-
-export async function setForumModeration(enabled: boolean): Promise<AdminState> {
-  await requireAdmin();
-  const admin = createAdminClient();
-  const { error } = await admin.from("settings").upsert({ key: "forum_moderation", value: { enabled }, updated_at: new Date().toISOString() });
-  if (error) return { error: "לא הצלחנו לשמור." };
-  revalidateAdmin(["/forum"]);
-  return { error: null };
-}
 
 export async function setSectionVisible(id: string, visible: boolean): Promise<AdminState> {
   await requireAdmin();
@@ -231,4 +224,36 @@ export async function removeRegistration(eventId: string, userId: string): Promi
   if (error) return { error: "לא הצלחנו להסיר." };
   revalidateAdmin([`/admin/events/${eventId}`]);
   return { error: null };
+}
+
+// ───────────────────────── site content ─────────────────────────
+
+/** Saves one group of the content registry: changed values are stored, "reset" boxes delete the override. */
+export async function saveContentGroup(groupKey: string, _prev: AdminState, fd: FormData): Promise<AdminState> {
+  await requireAdmin();
+  const group = CONTENT_GROUPS.find((g) => g.key === groupKey);
+  if (!group) return { error: "קבוצה לא מוכרת." };
+  const admin = createAdminClient();
+  const upserts: { key: string; value: string; updated_at: string }[] = [];
+  const deletes: string[] = [];
+  for (const f of group.fields) {
+    if (fd.get(`reset:${f.key}`) === "on") {
+      deletes.push(f.key);
+      continue;
+    }
+    const raw = fd.get(`v:${f.key}`);
+    if (raw === null) continue;
+    let value = String(raw).split(String.fromCharCode(13)).join("");
+    if (f.kind === "rich") value = sanitizeRich(value);
+    else value = value.trim();
+    if (value === "" || value === f.default) deletes.push(f.key);
+    else upserts.push({ key: f.key, value, updated_at: new Date().toISOString() });
+  }
+  if (deletes.length) await admin.from("site_content").delete().in("key", deletes);
+  if (upserts.length) {
+    const { error } = await admin.from("site_content").upsert(upserts);
+    if (error) return { error: "לא הצלחנו לשמור." };
+  }
+  revalidatePath("/", "layout");
+  return { error: null, ok: "נשמר. השינויים כבר באתר." };
 }

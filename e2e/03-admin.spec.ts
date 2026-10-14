@@ -31,10 +31,31 @@ test.describe("admin", () => {
     await expect(page.getByRole("status")).toContainText("נשמר");
   });
 
-  test("forum: sections toggle, moderation queue", async ({ page }) => {
+  test("forum: the team opens a rich discussion from the forum, manages sections", async ({ page }) => {
+    await page.goto("/forum");
+    const composer = page.locator("#composer");
+    await expect(composer).toBeVisible();
+    await composer.locator('[name="section"]').selectOption({ label: "תכנים" });
+    await composer.locator('input[name="title"]').fill("QA דיון של הצוות");
+    const editor = composer.locator('[data-rich-editor="body"]');
+    await editor.click();
+    await composer.getByRole("button", { name: "מודגש" }).click();
+    await page.keyboard.type("טקסט מודגש");
+    await composer.getByRole("button", { name: "מודגש" }).click();
+    await page.keyboard.type(" ורגיל ");
+    await composer.getByRole("button", { name: "אימוג׳י" }).click();
+    await composer.getByRole("dialog", { name: "בחירת אימוג׳י" }).getByRole("button", { name: "💜" }).click();
+    await composer.getByRole("button", { name: "שולחת לפורום" }).click();
+    await expect(composer.getByRole("status")).toContainText("פורסם");
+    const card = page.locator("article", { hasText: "QA דיון של הצוות" });
+    await expect(card).toBeVisible();
+    await expect(card.locator("b, strong", { hasText: "טקסט מודגש" })).toBeVisible();
+    await expect(card.getByText(/💜/)).toBeVisible();
+
     await page.goto("/admin/forum");
     await expect(page.getByRole("heading", { name: "מדורים" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "פוסטים לבדיקה" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "הדיונים" })).toBeVisible();
+    await expect(page.getByText("QA דיון של הצוות")).toBeVisible();
     await page.getByRole("button", { name: "+ מדור חדש" }).click();
     await page.fill('[name="name"]', "QA מדור");
     await page.getByRole("button", { name: "הוספה" }).click();
@@ -76,5 +97,25 @@ test.describe("admin", () => {
     await expect(page.getByRole("heading", { name: /נרשמות/ })).toBeVisible();
     const r = await page.request.get(page.url().replace("/admin/events/", "/admin/export/registrations/"));
     expect(r.status()).toBe(200);
+  });
+
+  test("site content: edit the home title, see it live, reset it", async ({ page }) => {
+    await page.goto("/admin/content");
+    await expect(page.getByRole("heading", { name: "תוכן האתר" })).toBeVisible();
+    await page.getByRole("button", { name: /^תפריט ראשי/ }).click();
+    const field = page.locator('[name="v:home.title"]');
+    await field.fill("QA כותרת חדשה לבית");
+    await page.locator("form").filter({ has: field }).getByRole("button", { name: "שמירת הקבוצה" }).click();
+    await expect(page.getByRole("status")).toContainText("נשמר");
+    await page.goto("/home");
+    await expect(page.getByRole("heading", { name: "QA כותרת חדשה לבית" })).toBeVisible();
+
+    await page.goto("/admin/content");
+    await page.getByRole("button", { name: /^תפריט ראשי/ }).click();
+    await page.locator('[name="reset:home.title"]').check();
+    await page.locator("form").filter({ has: page.locator('[name="v:home.title"]') }).getByRole("button", { name: "שמירת הקבוצה" }).click();
+    await expect(page.getByRole("status")).toContainText("נשמר");
+    await page.goto("/home");
+    await expect(page.getByRole("heading", { name: "איזו המעטפָאן את פותחת היום?" })).toBeVisible();
   });
 });

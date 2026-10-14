@@ -68,7 +68,18 @@ await admin.from("registrations").delete().in("user_id", qaIds);
 await admin.from("topic_team").delete().in("user_id", qaIds);
 await admin.from("events").delete().like("title", "QA %");
 await admin.from("forum_sections").delete().like("name", "QA %");
-await admin.from("settings").upsert({ key: "forum_moderation", value: { enabled: false } });
+await admin.from("site_content").delete().like("value", "QA %");
+await admin.from("site_content").delete().eq("key", "home.title");
+
+// A discussion opened by the team, for the member specs to like and comment on.
+const { data: talk } = await admin.from("forum_sections").select("id").eq("key", "talk").single();
+await admin.from("posts").insert({
+  section_id: talk.id,
+  author_id: ids.admin,
+  title: "QA דיון פתוח",
+  body: "<p>דיון לבדיקה עם <strong>מודגש</strong> ואימוג׳י 😊</p>",
+  status: "published",
+});
 
 // This month's birthday party gets a date (a weekday – never Friday/Shabbat), so RSVP and the host view can be exercised.
 const in10 = new Date(Date.now() + 10 * 24 * 3600 * 1000);

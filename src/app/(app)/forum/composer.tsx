@@ -3,17 +3,29 @@
 import { useActionState, useRef, useState } from "react";
 import { createPost, type ForumState } from "./actions";
 import { createClient } from "@/lib/supabase/client";
+import { RichEditor } from "@/components/rich-editor";
 
 const LABEL = { display: "flex", flexDirection: "column", gap: 6, fontSize: 15, fontWeight: 500 } as const;
 
-export function Composer({ sections, moderated, userId }: { sections: { key: string; name: string }[]; moderated: boolean; userId: string }) {
-  const [state, action, pending] = useActionState<ForumState, FormData>(createPost, { error: null });
+/** The team's "open a discussion" box – rich text, emoji, an optional image. */
+export function Composer({ sections, userId, title, button }: { sections: { key: string; name: string }[]; userId: string; title: string; button: string }) {
   const [imagePath, setImagePath] = useState<string>("");
   const [imageName, setImageName] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [state, action, pending] = useActionState<ForumState, FormData>(async (prev, fd) => {
+    const r = await createPost(prev, fd);
+    if (r.ok) {
+      formRef.current?.reset();
+      setImagePath("");
+      setImageName("");
+      setResetKey((k) => k + 1);
+    }
+    return r;
+  }, { error: null });
 
   async function onFile(file: File | undefined) {
     setUploadError(null);
@@ -38,15 +50,14 @@ export function Composer({ sections, moderated, userId }: { sections: { key: str
         ]
       : [{ value: s.key, label: s.name }]
   );
-  // The design lists "דיונים קבוצתיים" first.
   options.sort((a, b) => (a.value === "talk" ? -1 : b.value === "talk" ? 1 : 0));
 
   return (
     <section id="composer" style={{ background: "#FBF1EA", border: "2px solid #EAD3C6", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 12, boxShadow: "6px 6px 0 #4A1942", transform: "rotate(1deg)" }}>
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>על מה בא לך לדבר?</h2>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{title}</h2>
       {state.ok && (
         <p role="status" className="flash flash-ok" style={{ margin: 0 }}>
-          {state.pending ? "הפוסט נשלח לצוות המעטפת ויפורסם אחרי אישור." : "פורסם! הפוסט שלך כבר בפורום."}
+          פורסם! הדיון כבר בפורום.
         </p>
       )}
       {state.error && (
@@ -54,18 +65,7 @@ export function Composer({ sections, moderated, userId }: { sections: { key: str
           {state.error}
         </p>
       )}
-      <form
-        ref={formRef}
-        action={(fd) => {
-          action(fd);
-          setTimeout(() => {
-            formRef.current?.reset();
-            setImagePath("");
-            setImageName("");
-          }, 50);
-        }}
-        style={{ display: "flex", flexDirection: "column", gap: 12 }}
-      >
+      <form ref={formRef} action={action} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input type="hidden" name="image_path" value={imagePath} />
         <label style={LABEL}>
           מדור
@@ -81,10 +81,10 @@ export function Composer({ sections, moderated, userId }: { sections: { key: str
           כותרת
           <input className="fld" name="title" type="text" placeholder="משפט אחד שמסקרן" maxLength={140} required />
         </label>
-        <label style={LABEL}>
+        <div style={{ ...LABEL }}>
           מה בלב
-          <textarea className="fld" name="body" rows={4} placeholder="כתבי כאן…" required />
-        </label>
+          <RichEditor key={resetKey} name="body" placeholder="כתבי כאן…" minHeight={130} />
+        </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => onFile(e.target.files?.[0])} />
           <button
@@ -102,20 +102,15 @@ export function Composer({ sections, moderated, userId }: { sections: { key: str
             </svg>
           </button>
           <button type="submit" className="btn-primary" disabled={pending || uploading} style={{ flex: 1, height: 50, padding: 0 }}>
-            {pending ? "שולחת…" : uploading ? "מעלה תמונה…" : "שולחת לפורום"}
+            {pending ? "שולחת…" : uploading ? "מעלה תמונה…" : button}
           </button>
         </div>
-        {imageName && (
-          <span style={{ fontSize: 13, color: "#2F6B3A" }}>
-            צורפה: {imageName}
-          </span>
-        )}
+        {imageName && <span style={{ fontSize: 13, color: "#2F6B3A" }}>צורפה: {imageName}</span>}
         {uploadError && (
           <span role="alert" style={{ fontSize: 14, color: "#A3304A" }}>
             {uploadError}
           </span>
         )}
-        {moderated && <span style={{ fontSize: 13, color: "#7A5566" }}>פוסטים חדשים מתפרסמים אחרי אישור צוות המעטפת.</span>}
       </form>
     </section>
   );

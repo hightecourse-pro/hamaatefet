@@ -8,7 +8,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 
 const LABEL = { display: "flex", flexDirection: "column", gap: 8, fontSize: 16, fontWeight: 500 } as const;
 
-export function BirthdayForm({ birthMonth, remind }: { birthMonth: number | null; remind: boolean }) {
+export function BirthdayForm({ birthMonth, remind, remindLabel }: { birthMonth: number | null; remind: boolean; remindLabel: string }) {
   const [state, action, pending] = useActionState<ProfileState, FormData>(saveBirthday, { error: null });
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -27,7 +27,7 @@ export function BirthdayForm({ birthMonth, remind }: { birthMonth: number | null
       </label>
       <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 16, cursor: "pointer" }}>
         <input type="checkbox" name="remind" defaultChecked={remind} style={{ width: 20, height: 20, accentColor: "#A3304A" }} />
-        להזכיר לי במייל לפני המסיבה שלי
+        {remindLabel}
       </label>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <button type="submit" className="btn-primary" disabled={pending}>

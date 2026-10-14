@@ -4,7 +4,7 @@ import { todayIso } from "@/lib/events";
 export interface AdminCounts {
   activeMembers: number;
   pendingMembers: number;
-  pendingPosts: number;
+  commentsWeek: number;
   newProposals: number;
   nextEventTitle: string | null;
   nextEventRegistrations: number;
@@ -13,10 +13,11 @@ export interface AdminCounts {
 /** The numbers on the admin tiles and badges. Service role – call after requireAdmin(). */
 export async function adminCounts(): Promise<AdminCounts> {
   const admin = createAdminClient();
-  const [active, pending, posts, proposals, next] = await Promise.all([
+  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const [active, pending, comments, proposals, next] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    admin.from("posts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    admin.from("comments").select("id", { count: "exact", head: true }).gte("created_at", since),
     admin.from("hosting_proposals").select("id", { count: "exact", head: true }).eq("status", "new"),
     admin.from("events").select("id, title").eq("published", true).gte("event_date", todayIso()).order("event_date").limit(1).maybeSingle(),
   ]);
@@ -28,7 +29,7 @@ export async function adminCounts(): Promise<AdminCounts> {
   return {
     activeMembers: active.count ?? 0,
     pendingMembers: pending.count ?? 0,
-    pendingPosts: posts.count ?? 0,
+    commentsWeek: comments.count ?? 0,
     newProposals: proposals.count ?? 0,
     nextEventTitle: next.data?.title ?? null,
     nextEventRegistrations,

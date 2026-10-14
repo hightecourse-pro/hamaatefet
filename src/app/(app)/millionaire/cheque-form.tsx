@@ -13,7 +13,15 @@ const KINDS = [
 
 const LINE_LABEL = { display: "flex", flexDirection: "column", gap: 2, fontSize: 15, color: "#7A5566" } as const;
 
-export function ChequeForm({ defaultName, months }: { defaultName: string; months: string[] }) {
+export interface ChequeCopy {
+  question: string;
+  button: string;
+  sentTitle: string;
+  sentText: string;
+  sentAgain: string;
+}
+
+export function ChequeForm({ defaultName, months, copy }: { defaultName: string; months: string[]; copy: ChequeCopy }) {
   const [state, action, pending] = useActionState<ProposalState, FormData>(createProposal, { error: null });
   const [kind, setKind] = useState("talent");
   const [reset, setReset] = useState(0);
@@ -24,10 +32,10 @@ export function ChequeForm({ defaultName, months }: { defaultName: string; month
       <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", padding: "12px 0" }}>
         <Image src="/brand/seal.png" alt="" width={90} height={90} style={{ width: 90, height: 90, transform: "rotate(-10deg)" }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <strong style={{ fontSize: 26 }}>הצ׳ק נחתם!</strong>
-          <span style={{ fontSize: 18, color: "#5A3348" }}>צוות המעטפת יחזור אלייך בקרוב לתיאום מועד.</span>
+          <strong style={{ fontSize: 26 }}>{copy.sentTitle}</strong>
+          <span style={{ fontSize: 18, color: "#5A3348" }}>{copy.sentText}</span>
           <button type="button" className="btn-link" style={{ alignSelf: "flex-start" }} onClick={() => setReset((n) => n + 1)}>
-            יש לי עוד רעיון
+            {copy.sentAgain}
           </button>
         </div>
       </div>
@@ -43,7 +51,7 @@ export function ChequeForm({ defaultName, months }: { defaultName: string; month
         </p>
       )}
       <fieldset style={{ border: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-        <legend style={{ fontSize: 17, fontWeight: 600, marginBottom: 10 }}>מה יש לך שאין לאף אחת?</legend>
+        <legend style={{ fontSize: 17, fontWeight: 600, marginBottom: 10 }}>{copy.question}</legend>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {KINDS.map((k) => {
             const on = k.key === kind;
@@ -53,18 +61,7 @@ export function ChequeForm({ defaultName, months }: { defaultName: string; month
                 type="button"
                 aria-pressed={on}
                 onClick={() => setKind(k.key)}
-                style={{
-                  minHeight: 48,
-                  padding: "0 20px",
-                  borderRadius: 999,
-                  fontSize: 17,
-                  cursor: "pointer",
-                  background: on ? "#B5532F" : "#FFFFFF",
-                  color: on ? "#FFF6EE" : "#6E0F1A",
-                  border: on ? "2px solid #B5532F" : "2px dashed #D9B79E",
-                  fontWeight: on ? 600 : 500,
-                  boxShadow: on ? "3px 3px 0 #6E0F1A" : "none",
-                }}
+                style={{ minHeight: 48, padding: "0 20px", borderRadius: 999, fontSize: 17, cursor: "pointer", background: on ? "#B5532F" : "#FFFFFF", color: on ? "#FFF6EE" : "#6E0F1A", border: on ? "2px solid #B5532F" : "2px dashed #D9B79E", fontWeight: on ? 600 : 500, boxShadow: on ? "3px 3px 0 #6E0F1A" : "none" }}
               >
                 {k.label}
               </button>
@@ -102,12 +99,8 @@ export function ChequeForm({ defaultName, months }: { defaultName: string; month
           צריכה משהו מיוחד?
           <input className="line" name="needs" type="text" placeholder="מקרן, שולחן, חומרים…" />
         </label>
-        <button
-          type="submit"
-          disabled={pending}
-          style={{ flex: "0 0 auto", height: 56, padding: "0 30px", borderRadius: 18, border: "none", background: "#B5532F", color: "#FFF6EE", fontSize: 20, fontWeight: 700, cursor: "pointer", boxShadow: "4px 4px 0 #6E0F1A", opacity: pending ? 0.7 : 1 }}
-        >
-          {pending ? "חותמת…" : "חותמת על הצ׳ק"}
+        <button type="submit" disabled={pending} style={{ flex: "0 0 auto", height: 56, padding: "0 30px", borderRadius: 18, border: "none", background: "#B5532F", color: "#FFF6EE", fontSize: 20, fontWeight: 700, cursor: "pointer", boxShadow: "4px 4px 0 #6E0F1A", opacity: pending ? 0.7 : 1 }}>
+          {pending ? "חותמת…" : copy.button}
         </button>
       </div>
     </form>

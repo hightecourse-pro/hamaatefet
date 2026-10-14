@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </header>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start" }}>
-        <AdminNav badges={{ members: counts.pendingMembers, forum: counts.pendingPosts, mill: counts.newProposals }} />
+        <AdminNav badges={{ members: counts.pendingMembers, mill: counts.newProposals }} />
         <main style={{ flex: "999 1 640px", minWidth: 0, padding: "28px clamp(16px, 3vw, 40px) 56px", display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
             <div style={{ ...TILE, background: "#FFFFFF", border: "2px solid #F0E2D8" }}>
@@ -45,8 +45,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <span style={{ fontSize: 32, fontWeight: 700, color: "#9A4318" }}>{counts.pendingMembers}</span>
             </div>
             <div style={{ ...TILE, background: "#FFFFFF", border: "2px solid #F0E2D8" }}>
-              <span style={{ fontSize: 15, color: "#6A4558" }}>פוסטים לבדיקה</span>
-              <span style={{ fontSize: 32, fontWeight: 700, color: "#A3304A" }}>{counts.pendingPosts}</span>
+              <span style={{ fontSize: 15, color: "#6A4558" }}>תגובות בשבוע האחרון</span>
+              <span style={{ fontSize: 32, fontWeight: 700, color: "#A3304A" }}>{counts.commentsWeek}</span>
             </div>
             <div style={{ ...TILE, background: "#FFFFFF", border: "2px solid #F0E2D8" }}>
               <span style={{ fontSize: 15, color: "#6A4558" }}>נרשמות למפגש הקרוב{counts.nextEventTitle ? ` · ${counts.nextEventTitle}` : ""}</span>

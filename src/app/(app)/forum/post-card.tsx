@@ -3,6 +3,8 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { toggleLike, addComment, deleteOwnPost, deleteOwnComment } from "./actions";
 import { timeAgo } from "@/lib/hebrew";
+import { RichHtml } from "@/components/rich-html";
+import { RichEditor } from "@/components/rich-editor";
 
 export interface FeedPost {
   id: string;
@@ -33,6 +35,13 @@ export interface FeedComment {
   created_at: string;
 }
 
+export interface ForumLabels {
+  like: string;
+  commentPlaceholder: string;
+  commentButton: string;
+  commentEmpty: string;
+}
+
 const CTA: Record<string, string> = { talk: "להצטרף לדיון", bts: "להגיב", content: "להגיב" };
 
 function ctaFor(p: FeedPost): string {
@@ -42,12 +51,13 @@ function ctaFor(p: FeedPost): string {
 
 const ACTION_BTN = { display: "flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 999, border: "none", background: "#FBEDE4", color: "#6E0F1A", fontSize: 16, cursor: "pointer" } as const;
 
-export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost; comments: FeedComment[]; imageUrl: string | null; userId: string }) {
+export function PostCard({ post, comments, imageUrl, userId, labels }: { post: FeedPost; comments: FeedComment[]; imageUrl: string | null; userId: string; labels: ForumLabels }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [liked, setLiked] = useState(post.liked_by_me);
   const [likes, setLikes] = useState(post.like_count);
+  const [resetKey, setResetKey] = useState(0);
 
   const name = `${post.author_first_name} ${post.author_last_name}`.trim() || "חברת המעטפת";
   const initial = (post.author_first_name || post.author_last_name || "מ").charAt(0);
@@ -70,13 +80,12 @@ export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost;
 
   function onComment(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const body = String(new FormData(form).get("body") ?? "");
+    const body = String(new FormData(e.currentTarget).get("comment") ?? "");
     start(async () => {
       setError(null);
       const r = await addComment(post.id, body);
       if (r.error) setError(r.error);
-      else form.reset();
+      else setResetKey((k) => k + 1);
     });
   }
 
@@ -96,7 +105,7 @@ export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost;
               מוצמד
             </span>
           )}
-          {post.status === "pending" && <span className="pill pill-pending">ממתין לאישור הצוות</span>}
+          {post.status === "hidden" && <span className="pill pill-paused">מוסתר</span>}
           <span style={{ padding: "5px 12px", borderRadius: 999, background: post.section_tint, color: post.section_color, fontSize: 14, fontWeight: 600 }}>{post.section_name}</span>
         </span>
       </div>
@@ -104,7 +113,7 @@ export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost;
         {titlePrefix}
         {post.title}
       </h3>
-      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-wrap" }}>{post.body}</p>
+      <RichHtml html={post.body} style={{ fontSize: 17, lineHeight: 1.6, color: "#5A3348" }} />
       {imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={imageUrl} alt="" style={{ maxWidth: "100%", maxHeight: 420, borderRadius: 16, border: "1.5px solid #F0E2D8", objectFit: "cover" }} />
@@ -114,7 +123,8 @@ export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost;
           <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
           </svg>
-          אהבתי{likes > 0 ? ` · ${likes}` : ""}
+          {labels.like}
+          {likes > 0 ? ` · ${likes}` : ""}
         </button>
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} style={ACTION_BTN}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -138,25 +148,25 @@ export function PostCard({ post, comments, imageUrl, userId }: { post: FeedPost;
       </div>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "#FBF1EA", borderRadius: 16, padding: 14 }}>
-          {comments.length === 0 && <span style={{ fontSize: 15, color: "#7A5566" }}>עוד אין תגובות – תהיי הראשונה.</span>}
-          {comments.map((c) => (
-            <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: 2, background: "#fff", borderRadius: 12, padding: "10px 12px" }}>
+          {comments.length === 0 && <span style={{ fontSize: 15, color: "#7A5566" }}>{labels.commentEmpty}</span>}
+          {comments.map((x) => (
+            <div key={x.id} style={{ display: "flex", flexDirection: "column", gap: 2, background: "#fff", borderRadius: 12, padding: "10px 12px" }}>
               <span style={{ fontSize: 14, color: "#7A5566" }}>
-                <b style={{ color: "#3A1530" }}>{c.author_name}</b> · {timeAgo(c.created_at)}
-                {c.author_id === userId && (
-                  <button type="button" className="btn-link" style={{ fontSize: 13, marginRight: 8, padding: 0 }} onClick={() => start(async () => void (await deleteOwnComment(c.id)))}>
+                <b style={{ color: "#3A1530" }}>{x.author_name}</b> · {timeAgo(x.created_at)}
+                {x.author_id === userId && (
+                  <button type="button" className="btn-link" style={{ fontSize: 13, marginRight: 8, padding: 0 }} onClick={() => start(async () => void (await deleteOwnComment(x.id)))}>
                     מחיקה
                   </button>
                 )}
               </span>
-              <span style={{ fontSize: 16, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{c.body}</span>
+              <RichHtml html={x.body} style={{ fontSize: 16, lineHeight: 1.5 }} />
             </div>
           ))}
           {post.status === "published" && (
-            <form onSubmit={onComment} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <textarea className="fld" name="body" rows={2} placeholder="מה את חושבת?" required style={{ flex: 1 }} />
-              <button type="submit" className="btn-primary" disabled={pending} style={{ height: 48, padding: "0 18px", fontSize: 16 }}>
-                שולחת
+            <form onSubmit={onComment} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <RichEditor key={resetKey} name="comment" placeholder={labels.commentPlaceholder} minHeight={64} compact />
+              <button type="submit" className="btn-primary" disabled={pending} style={{ height: 48, padding: "0 18px", fontSize: 16, alignSelf: "flex-start" }}>
+                {pending ? "…" : labels.commentButton}
               </button>
             </form>
           )}

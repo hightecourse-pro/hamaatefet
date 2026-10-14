@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { authCopy } from "@/components/auth/auth-copy";
 import { getSession, homeFor } from "@/lib/auth";
+import { getContent } from "@/lib/content";
 
 export const metadata = { title: "כניסה" };
 
@@ -14,6 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       : error === "link"
         ? "הקישור לא תקין או שכבר נוצל. אפשר לבקש קישור חדש."
         : null;
+  const content = await getContent();
   return (
     <>
       {banner && (
@@ -21,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {banner}
         </p>
       )}
-      <AuthScreen initialMode="login" />
+      <AuthScreen initialMode="login" copy={authCopy(content)} />
     </>
   );
 }

@@ -7,12 +7,18 @@ import { toggleRegistration } from "@/app/(app)/events-actions";
 import { ToggleButton } from "@/components/toggle-button";
 import { ChequeForm } from "./cheque-form";
 import { HEBREW_MONTHS, hebrewToday, hebrewDateLabel } from "@/lib/hebrew";
+import { getContent } from "@/lib/content";
 import { HDate, gematriya } from "@hebcal/core";
 
 export const metadata = { title: "המיליונרית" };
 
 const STEP = { flex: "1 1 240px", background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 24, padding: 22, display: "flex", gap: 16, alignItems: "flex-start" } as const;
 const NUM = { flex: "none", width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 700 } as const;
+const STEP_COLORS = [
+  { bg: "#FCE3CC", fg: "#9A4318" },
+  { bg: "#FBE1E4", fg: "#A3304A" },
+  { bg: "#F1E2EE", fg: "#4A1942" },
+];
 
 function dayAndMonth(iso: string | null): { day: string; month: string } {
   if (!iso) return { day: "?", month: "מועד ייקבע" };
@@ -26,6 +32,7 @@ function dayAndMonth(iso: string | null): { day: string; month: string } {
 export default async function MillionairePage() {
   const { userId, profile } = await requireActive();
   const supabase = await createClient();
+  const c = await getContent();
   const { data: rows } = await supabase
     .from("events")
     .select("*")
@@ -39,8 +46,8 @@ export default async function MillionairePage() {
   const today = hebrewToday();
   const months: string[] = [];
   for (let i = 1; i <= 8; i++) months.push(HEBREW_MONTHS[(today.month - 1 + i) % 12]);
-
   const ROT = [-1.5, 1, -0.5];
+  const textLines = c.lines("mill.text");
 
   return (
     <MemberFrame profile={profile} current="millionaire">
@@ -50,38 +57,39 @@ export default async function MillionairePage() {
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 40, position: "relative" }}>
           <div style={{ flex: "1 1 420px", display: "flex", flexDirection: "column", gap: 12 }}>
             <span className="hand" style={{ fontSize: 20, color: "#9A4318" }}>
-              מפגשי אירוח של חברות המעטפת
+              {c.get("mill.tagline")}
             </span>
             <h1 style={{ margin: 0, fontSize: "clamp(52px, 8vw, 88px)", fontWeight: 700, lineHeight: 1 }}>
-              <span className="grad">המיליונרית</span>
+              <span className="grad">{c.get("mill.title")}</span>
             </h1>
             <p style={{ margin: "8px 0 0", fontSize: 22, lineHeight: 1.6, maxWidth: 520 }}>
-              יש לך משהו שאין לאף אחת?
-              <br />
-              כישרון, תובנה, סיפור בלעדי…?
-              <br />
-              תני לנו לטעום ממך, קצת, ככה, בקטנה.
+              {textLines.map((line, i) => (
+                <span key={i}>
+                  {line}
+                  {i < textLines.length - 1 && <br />}
+                </span>
+              ))}
             </p>
             <p className="hand" style={{ margin: "4px 0 0", fontSize: 30, fontWeight: 600, color: "#A3304A", transform: "rotate(-3deg)", alignSelf: "flex-start" }}>
-              כי את שווה מיליון דולר!
+              {c.get("mill.slogan")}
             </p>
           </div>
           <div style={{ flex: "1 1 380px", maxWidth: 460, position: "relative", background: "#FFFDF8", borderRadius: 20, border: "2px solid #E8C7AE", padding: "26px 28px", boxShadow: "10px 10px 0 #B5532F", transform: "rotate(3deg)", display: "flex", flexDirection: "column", gap: 14 }}>
             <Image src="/brand/seal.png" alt="" width={96} height={96} style={{ position: "absolute", bottom: -30, left: -24, width: 96, height: 96, transform: "rotate(-18deg)" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "#9A4318" }}>בנק המעטפת</span>
-              <span style={{ fontSize: 15, color: "#7A5566" }}>מס׳ 000001</span>
+              <span style={{ fontWeight: 700, fontSize: 18, color: "#9A4318" }}>{c.get("mill.cheque.bank")}</span>
+              <span style={{ fontSize: 15, color: "#7A5566" }}>{c.get("mill.cheque.number")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", borderBottom: "2px dashed #D9B79E", paddingBottom: 8 }}>
               <span style={{ fontSize: 15, color: "#7A5566" }}>לפקודת</span>
               <span className="hand" style={{ fontSize: 24, color: "#4A1942" }}>
-                את
+                {c.get("mill.cheque.payee")}
               </span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", borderBottom: "2px dashed #D9B79E", paddingBottom: 8 }}>
               <span style={{ fontSize: 15, color: "#7A5566" }}>סך של</span>
               <span className="hand" style={{ fontSize: 24, color: "#4A1942" }}>
-                מיליון דולר בדיוק
+                {c.get("mill.cheque.amount")}
               </span>
             </div>
             <div style={{ alignSelf: "flex-start", padding: "8px 16px", border: "2px solid #B5532F", borderRadius: 10, fontWeight: 700, fontSize: 26, color: "#B5532F" }} dir="ltr">
@@ -94,45 +102,33 @@ export default async function MillionairePage() {
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 72px", display: "flex", flexDirection: "column", gap: 64 }}>
         <section aria-labelledby="how" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <h2 id="how" style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-            <span className="grad">איך זה עובד?</span>
+            <span className="grad">{c.get("mill.how.title")}</span>
           </h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-            <div style={STEP}>
-              <span style={{ ...NUM, background: "#FCE3CC", color: "#9A4318" }}>1</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <strong style={{ fontSize: 19 }}>מספרת לנו מה יש לך</strong>
-                <span style={{ fontSize: 16, lineHeight: 1.5, color: "#6A4558" }}>ממלאת את הצ׳ק למטה – כמה מילים זה מספיק.</span>
+            {[1, 2, 3].map((n, i) => (
+              <div key={n} style={STEP}>
+                <span style={{ ...NUM, background: STEP_COLORS[i].bg, color: STEP_COLORS[i].fg }}>{n}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <strong style={{ fontSize: 19 }}>{c.get(`mill.step${n}.title`)}</strong>
+                  <span style={{ fontSize: 16, lineHeight: 1.5, color: "#6A4558" }}>{c.get(`mill.step${n}.text`)}</span>
+                </div>
               </div>
-            </div>
-            <div style={STEP}>
-              <span style={{ ...NUM, background: "#FBE1E4", color: "#A3304A" }}>2</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <strong style={{ fontSize: 19 }}>קובעות יחד מועד</strong>
-                <span style={{ fontSize: 16, lineHeight: 1.5, color: "#6A4558" }}>צוות המעטפת חוזר אלייך ומתאם תאריך ומקום.</span>
-              </div>
-            </div>
-            <div style={STEP}>
-              <span style={{ ...NUM, background: "#F1E2EE", color: "#4A1942" }}>3</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <strong style={{ fontSize: 19 }}>את מארחת, אנחנו טועמות</strong>
-                <span style={{ fontSize: 16, lineHeight: 1.5, color: "#6A4558" }}>ערב קטן, אינטימי ובלעדי – בדיוק בגודל שלך.</span>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
         <section aria-labelledby="next" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
             <h2 id="next" style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-              <span className="grad">המארחות הבאות</span>
+              <span className="grad">{c.get("mill.next.title")}</span>
             </h2>
             <span className="hand" style={{ fontSize: 18, color: "#7A5566" }}>
-              מקומות מוגבלים – כדאי להירשם
+              {c.get("mill.next.note")}
             </span>
           </div>
           {hosts.length === 0 && (
             <div className="surface" style={{ color: "#6A4558", fontSize: 17, textAlign: "center", padding: 32 }}>
-              עוד אין מועדים קבועים. הצ׳ק הראשון יכול להיות שלך – הטופס למטה.
+              {c.get("mill.next.empty")}
             </div>
           )}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
@@ -147,12 +143,8 @@ export default async function MillionairePage() {
                       <span style={{ fontSize: 15 }}>{dm.month}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {h.kind && (
-                        <span style={{ alignSelf: "flex-start", padding: "4px 12px", borderRadius: 999, background: kc.tint, color: kc.color, fontSize: 14, fontWeight: 600 }}>{KIND_LABEL[h.kind]}</span>
-                      )}
-                      <span style={{ fontSize: 15, color: "#7A5566" }}>
-                        {[h.timeLabel, h.location].filter(Boolean).join(" · ") || hebrewDateLabel(h.event_date)}
-                      </span>
+                      {h.kind && <span style={{ alignSelf: "flex-start", padding: "4px 12px", borderRadius: 999, background: kc.tint, color: kc.color, fontSize: 14, fontWeight: 600 }}>{KIND_LABEL[h.kind]}</span>}
+                      <span style={{ fontSize: 15, color: "#7A5566" }}>{[h.timeLabel, h.location].filter(Boolean).join(" · ") || hebrewDateLabel(h.event_date)}</span>
                     </div>
                   </div>
                   <h3 style={{ margin: 0, fontSize: 23, fontWeight: 700 }}>{h.title}</h3>
@@ -167,10 +159,10 @@ export default async function MillionairePage() {
                   </p>
                   <ToggleButton
                     on={h.registered}
-                    onLabel="נרשמת! (ביטול)"
-                    offLabel="שמרי לי מקום"
+                    onLabel={c.get("mill.rsvp.done")}
+                    offLabel={c.get("mill.rsvp")}
                     disabled={h.full}
-                    disabledLabel="המקומות נגמרו"
+                    disabledLabel={c.get("home.band.full")}
                     action={toggleRegistration.bind(null, h.id, "/millionaire")}
                     onStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#FFFFFF", color: "#2F6B3A", border: "2px solid #2F6B3A" }}
                     offStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#6E0F1A", color: "#FFF3EA", border: "2px solid #6E0F1A", boxShadow: "3px 3px 0 #4A1942" }}
@@ -185,13 +177,17 @@ export default async function MillionairePage() {
           <Image src="/brand/envelope.png" alt="" width={140} height={110} style={{ position: "absolute", top: -50, left: 30, width: 140, height: "auto", transform: "rotate(12deg)" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <h2 id="prop" style={{ margin: 0, fontSize: 38, fontWeight: 700 }}>
-              <span className="grad">הצ׳ק שלך</span>
+              <span className="grad">{c.get("mill.propose.title")}</span>
             </h2>
             <p className="hand" style={{ margin: 0, fontSize: 19, color: "#9A4318" }}>
-              ממלאות, חותמות, ואנחנו כבר חוזרות אלייך
+              {c.get("mill.propose.subtitle")}
             </p>
           </div>
-          <ChequeForm defaultName={displayName(profile)} months={months} />
+          <ChequeForm
+            defaultName={displayName(profile)}
+            months={months}
+            copy={{ question: c.get("mill.propose.question"), button: c.get("mill.propose.button"), sentTitle: c.get("mill.sent.title"), sentText: c.get("mill.sent.text"), sentAgain: c.get("mill.sent.again") }}
+          />
         </section>
       </main>
     </MemberFrame>

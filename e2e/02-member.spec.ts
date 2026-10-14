@@ -19,32 +19,33 @@ test.describe("member flows", () => {
     await expect(band.getByRole("button", { name: "אני באה!" })).toBeVisible();
   });
 
-  test("forum: sections, new post, like, comment, search", async ({ page }) => {
+  test("forum: a member cannot open a discussion, but likes and comments with emoji", async ({ page }) => {
     await page.goto("/forum");
     await expect(page.getByRole("heading", { name: "הפורום", level: 1 })).toBeVisible();
     for (const s of ["תכנים", "מאחורי הקלעים", "עזרה הדדית", "דיונים קבוצתיים"]) await expect(page.getByRole("link", { name: new RegExp(s) }).first()).toBeVisible();
+    await expect(page.locator("#composer")).toHaveCount(0);
+    await expect(page.getByText("איך זה עובד כאן?")).toBeVisible();
 
-    const title = `QA פוסט ${Date.now()}`;
-    await page.selectOption('[name="section"]', { label: "דיונים קבוצתיים" });
-    await page.fill('[name="title"]', title);
-    await page.fill('[name="body"]', "זה פוסט שנוצר אוטומטית בבדיקה.");
-    await page.getByRole("button", { name: "שולחת לפורום" }).click();
-    await expect(page.getByRole("status")).toContainText("פורסם");
-    const card = page.locator("article", { hasText: title });
+    const card = page.locator("article", { hasText: "QA דיון פתוח" });
     await expect(card).toBeVisible();
+    await expect(card.locator("strong", { hasText: "מודגש" })).toBeVisible();
 
     await card.getByRole("button", { name: /אהבתי/ }).click();
     await expect(card.getByRole("button", { name: /אהבתי · 1/ })).toBeVisible();
 
     await card.getByRole("button", { name: /להצטרף לדיון/ }).click();
-    await card.locator('textarea[name="body"]').fill("תגובה אוטומטית");
+    const editor = card.locator('[data-rich-editor="comment"]');
+    await editor.click();
+    await page.keyboard.type("תגובה אוטומטית ");
+    await card.getByRole("button", { name: "אימוג׳י" }).click();
+    await card.getByRole("dialog", { name: "בחירת אימוג׳י" }).getByRole("button", { name: "🎉" }).click();
     await card.getByRole("button", { name: "שולחת" }).click();
-    await expect(card.getByText("תגובה אוטומטית")).toBeVisible();
+    await expect(card.getByText("תגובה אוטומטית 🎉")).toBeVisible();
 
-    await page.goto(`/forum?q=${encodeURIComponent(title)}`);
-    await expect(page.locator("article", { hasText: title })).toBeVisible();
+    await page.goto(`/forum?q=${encodeURIComponent("QA דיון פתוח")}`);
+    await expect(page.locator("article", { hasText: "QA דיון פתוח" })).toBeVisible();
     await page.goto("/forum?section=content");
-    await expect(page.locator("article", { hasText: title })).toHaveCount(0);
+    await expect(page.locator("article", { hasText: "QA דיון פתוח" })).toHaveCount(0);
   });
 
   test("millionaire: hero, hosting RSVP, cheque proposal", async ({ page }) => {
@@ -87,6 +88,12 @@ test.describe("member flows", () => {
     await expect(page.getByRole("status").last()).toContainText("נשמרו");
     await page.getByRole("button", { name: "שינוי סיסמה" }).click();
     await expect(page.getByRole("heading", { name: "סיסמה חדשה" })).toBeVisible();
+  });
+
+  test("terms page shows the editable body", async ({ page }) => {
+    await page.goto("/terms");
+    await expect(page.getByRole("heading", { name: "תקנון ומדיניות פרטיות" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "כללי הבית" })).toBeVisible();
   });
 });
 

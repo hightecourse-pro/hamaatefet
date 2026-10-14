@@ -9,6 +9,7 @@ const TABS = [
   { key: "mill", href: "/admin/millionaire", label: "המיליונרית", icon: "M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" },
   { key: "bday", href: "/admin/birthday", label: "חוגגות חודש טוב", icon: "M4 21h16M5 21V12h14v9M12 12V8M12 5a1 1 0 0 0 0-2M8 12V9M16 12V9" },
   { key: "events", href: "/admin/events", label: "מפגשים והרשמות", icon: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM16 3v4M8 3v4M3 11h18" },
+  { key: "content", href: "/admin/content", label: "תוכן האתר", icon: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" },
 ];
 
 export function AdminNav({ badges }: { badges: Record<string, number> }) {
@@ -24,21 +25,7 @@ export function AdminNav({ badges }: { badges: Record<string, number> }) {
             key={t.key}
             href={t.href}
             aria-current={on ? "page" : undefined}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              minHeight: 50,
-              padding: "0 14px",
-              borderRadius: 14,
-              border: "none",
-              fontSize: 17,
-              textAlign: "right",
-              textDecoration: "none",
-              background: on ? "#6E0F1A" : "transparent",
-              color: on ? "#FFF3EA" : "#3A1530",
-              fontWeight: on ? 600 : 500,
-            }}
+            style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 50, padding: "0 14px", borderRadius: 14, border: "none", fontSize: 17, textAlign: "right", textDecoration: "none", background: on ? "#6E0F1A" : "transparent", color: on ? "#FFF3EA" : "#3A1530", fontWeight: on ? 600 : 500 }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d={t.icon} />

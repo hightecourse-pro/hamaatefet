@@ -9,30 +9,33 @@ import { monthOptions } from "@/lib/hebrew";
 
 export type AuthMode = "login" | "signup" | "pending" | "forgot" | "sent";
 
-const TAB_ON: CSSProperties = {
-  flex: 1,
-  height: 48,
-  border: "none",
-  borderRadius: 999,
-  fontSize: 18,
-  fontWeight: 600,
-  cursor: "pointer",
-  background: "#6E0F1A",
-  color: "#FFF3EA",
-  boxShadow: "3px 3px 0 #4A1942",
-};
-const TAB_OFF: CSSProperties = {
-  flex: 1,
-  height: 48,
-  border: "none",
-  borderRadius: 999,
-  fontSize: 18,
-  fontWeight: 500,
-  cursor: "pointer",
-  background: "transparent",
-  color: "#6E0F1A",
-};
+/** The screen's copy – from the content registry, passed by the server page. */
+export interface AuthCopy {
+  loginTitle: string;
+  loginSubtitle: string;
+  loginButton: string;
+  noAccount: string;
+  signupTitle: string;
+  signupSubtitle: string;
+  age: string;
+  terms: string;
+  termsLink: string;
+  signupButton: string;
+  pendingTitle: string;
+  pendingText: string;
+  forgotTitle: string;
+  forgotText: string;
+  forgotButton: string;
+  sentTitle: string;
+  sentText: string;
+  sideHeadline: string;
+  sideLines: string[];
+}
+
+const TAB_ON: CSSProperties = { flex: 1, height: 48, border: "none", borderRadius: 999, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#6E0F1A", color: "#FFF3EA", boxShadow: "3px 3px 0 #4A1942" };
+const TAB_OFF: CSSProperties = { flex: 1, height: 48, border: "none", borderRadius: 999, fontSize: 18, fontWeight: 500, cursor: "pointer", background: "transparent", color: "#6E0F1A" };
 const LABEL: CSSProperties = { display: "flex", flexDirection: "column", gap: 8, fontSize: 16, fontWeight: 500 };
+const LINE_COLORS = ["#C26A7E", "#8E4A86", "#E8894A"];
 
 function EyeButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
   return (
@@ -40,20 +43,7 @@ function EyeButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }
       type="button"
       onClick={onToggle}
       aria-label={shown ? "הסתרת סיסמה" : "הצגת סיסמה"}
-      style={{
-        position: "absolute",
-        left: 4,
-        top: 4,
-        width: 44,
-        height: 44,
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        color: "#7A5566",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      style={{ position: "absolute", left: 4, top: 4, width: 44, height: 44, border: "none", background: "transparent", cursor: "pointer", color: "#7A5566", display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {shown ? (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -90,7 +80,7 @@ function friendlyError(code: string | undefined, message: string): string {
   }
 }
 
-export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }) {
+export function AuthScreen({ initialMode = "login", copy }: { initialMode?: AuthMode; copy: AuthCopy }) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPw, setShowPw] = useState(false);
@@ -148,14 +138,9 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
     if (!terms) return setError("צריך לאשר את התקנון ומדיניות הפרטיות.");
     setBusy(true);
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { first_name, last_name, phone, birth_month, over_30, terms } },
-    });
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { first_name, last_name, phone, birth_month, over_30, terms } } });
     setBusy(false);
     if (error) return setError(friendlyError(error.code, error.message));
-    // With confirmations on, a repeated e-mail comes back as a user with no identities.
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
       return setError("כבר יש חברה עם המייל הזה. נסי להיכנס, או לבחור סיסמה חדשה.");
     }
@@ -184,33 +169,8 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
       <div aria-hidden="true" style={{ position: "absolute", bottom: 90, left: "40%", width: 26, height: 26, borderRadius: "50%", border: "4px solid #F6C9A6" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 160, right: "4%", width: 14, height: 14, borderRadius: 4, background: "#4A1942", transform: "rotate(20deg)" }} />
 
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-          padding: "48px 24px",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 48,
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          boxSizing: "border-box",
-          position: "relative",
-        }}
-      >
-        <section
-          style={{
-            flex: "1 1 440px",
-            maxWidth: 480,
-            background: "#FFFFFF",
-            borderRadius: 32,
-            padding: "40px 36px",
-            boxShadow: "10px 10px 0 #F3DCCB",
-            border: "2px solid #F0E2D8",
-            position: "relative",
-          }}
-        >
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "48px 24px", display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box", position: "relative" }}>
+        <section style={{ flex: "1 1 440px", maxWidth: 480, background: "#FFFFFF", borderRadius: 32, padding: "40px 36px", boxShadow: "10px 10px 0 #F3DCCB", border: "2px solid #F0E2D8", position: "relative" }}>
           <Image src="/brand/seal.png" alt="" width={92} height={92} style={{ position: "absolute", top: -34, left: -26, width: 92, height: 92, transform: "rotate(-14deg)" }} />
           <Image src="/brand/logo.png" alt="המעטפת – מבית חד או פאן" width={220} height={93} priority style={{ width: 220, height: "auto", display: "block", margin: "0 auto 24px" }} />
 
@@ -232,10 +192,10 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
           {mode === "login" && (
             <form onSubmit={onLogin} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-                <span className="grad">היי, טוב שבאת!</span>
+                <span className="grad">{copy.loginTitle}</span>
               </h1>
               <p className="hand" style={{ margin: "-8px 0 4px", fontSize: 18, color: "#7A5566" }}>
-                כל המעטפָאן מחכה לך בפנים…
+                {copy.loginSubtitle}
               </p>
               <label style={LABEL}>
                 מייל
@@ -258,10 +218,10 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
                 </button>
               </div>
               <button type="submit" className="cta" disabled={busy} style={{ marginTop: 6 }}>
-                {busy ? "פותחת…" : "פותחת את המעטפה"}
+                {busy ? "פותחת…" : copy.loginButton}
               </button>
               <p style={{ margin: "4px 0 0", textAlign: "center", fontSize: 15, color: "#7A5566" }}>
-                עוד לא חברה?{" "}
+                {copy.noAccount}{" "}
                 <button type="button" className="btn-link" onClick={() => go("signup")} style={{ fontWeight: 600, padding: "6px 2px" }}>
                   להרשמה
                 </button>
@@ -272,10 +232,10 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
           {mode === "signup" && (
             <form onSubmit={onSignup} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-                <span className="grad">מצטרפת למעטפת</span>
+                <span className="grad">{copy.signupTitle}</span>
               </h1>
               <p className="hand" style={{ margin: "-6px 0 2px", fontSize: 18, color: "#7A5566" }}>
-                כמה פרטים קטנים ואת בפנים
+                {copy.signupSubtitle}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <label style={{ ...LABEL, flex: "1 1 160px" }}>
@@ -319,16 +279,19 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
               </div>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 15, cursor: "pointer", lineHeight: 1.5 }}>
                 <input type="checkbox" name="over_30" style={{ width: 20, height: 20, marginTop: 2, accentColor: "#A3304A", flex: "none" }} />
-                אני מאשרת שאני בת 30 ומעלה (זה הגיל של הקהילה)
+                {copy.age}
               </label>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 15, cursor: "pointer", lineHeight: 1.5 }}>
                 <input type="checkbox" name="terms" style={{ width: 20, height: 20, marginTop: 2, accentColor: "#A3304A", flex: "none" }} />
                 <span>
-                  קראתי ואני מסכימה <Link href="/terms" target="_blank">לתקנון ולמדיניות הפרטיות</Link>
+                  {copy.terms}{" "}
+                  <Link href="/terms" target="_blank">
+                    {copy.termsLink}
+                  </Link>
                 </span>
               </label>
               <button type="submit" className="cta" disabled={busy}>
-                {busy ? "שולחת…" : "שולחת בקשת הצטרפות"}
+                {busy ? "שולחת…" : copy.signupButton}
               </button>
             </form>
           )}
@@ -337,11 +300,9 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
             <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
               <Image src="/brand/envelope.png" alt="" width={170} height={134} style={{ width: 170, height: "auto", transform: "rotate(-6deg)" }} />
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">המעטפה בדרך!</span>
+                <span className="grad">{copy.pendingTitle}</span>
               </h1>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348" }}>
-                שלחנו לך מייל לאימות הכתובת. אחרי האימות, צוות המעטפת יאשר את ההצטרפות ותקבלי הודעה.
-              </p>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.pendingText}</p>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ fontWeight: 600, padding: 10 }}>
                 חזרה לכניסה
               </button>
@@ -351,15 +312,15 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
           {mode === "forgot" && (
             <form onSubmit={onForgot} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700 }}>
-                <span className="grad">קורה לטובות ביותר</span>
+                <span className="grad">{copy.forgotTitle}</span>
               </h1>
-              <p style={{ margin: "-4px 0 4px", fontSize: 17, lineHeight: 1.6, color: "#5A3348" }}>כתבי את המייל שלך ונשלח קישור לבחירת סיסמה חדשה.</p>
+              <p style={{ margin: "-4px 0 4px", fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.forgotText}</p>
               <label style={LABEL}>
                 מייל
                 <input className="fld" name="email" type="email" placeholder="name@example.com" dir="ltr" autoComplete="email" required />
               </label>
               <button type="submit" className="cta" disabled={busy}>
-                {busy ? "שולחת…" : "שלחו לי קישור"}
+                {busy ? "שולחת…" : copy.forgotButton}
               </button>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ padding: 8 }}>
                 נזכרתי, חזרה לכניסה
@@ -371,9 +332,9 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
             <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
               <Image src="/brand/envelope.png" alt="" width={150} height={118} style={{ width: 150, height: "auto", transform: "rotate(8deg)" }} />
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">בדקי את תיבת המייל</span>
+                <span className="grad">{copy.sentTitle}</span>
               </h1>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348" }}>הקישור תקף לשעה. לא הגיע? כדאי להציץ גם בתיקיית הספאם.</p>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.sentText}</p>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ fontWeight: 600, padding: 10 }}>
                 חזרה לכניסה
               </button>
@@ -383,19 +344,18 @@ export function AuthScreen({ initialMode = "login" }: { initialMode?: AuthMode }
 
         <aside style={{ flex: "1 1 420px", maxWidth: 560, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center" }}>
           <p className="hand" style={{ margin: 0, fontSize: 44, color: "#4A1942", transform: "rotate(-4deg)" }}>
-            מוזמנת!
+            {copy.sideHeadline}
           </p>
           <Image className="env" src="/brand/envelope.png" alt="מעטפה חתומה בחותם שעווה" width={440} height={346} priority style={{ width: "min(100%, 440px)", height: "auto" }} />
           <div className="hand" style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 26, lineHeight: 1.4, color: "#6E0F1A", marginTop: 12 }}>
-            <span>
-              <span style={{ color: "#C26A7E" }}>להכיר</span> את המעטפת
-            </span>
-            <span>
-              <span style={{ color: "#8E4A86" }}>לטעום</span> את המפגשים
-            </span>
-            <span>
-              <span style={{ color: "#E8894A" }}>להיות</span> אחת בשביל כולן
-            </span>
+            {copy.sideLines.map((line, i) => {
+              const [first, ...rest] = line.split(" ");
+              return (
+                <span key={i}>
+                  <span style={{ color: LINE_COLORS[i % LINE_COLORS.length] }}>{first}</span> {rest.join(" ")}
+                </span>
+              );
+            })}
           </div>
         </aside>
       </div>

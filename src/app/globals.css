@@ -462,3 +462,15 @@ textarea.line {
   border-radius: 24px;
   padding: 22px;
 }
+
+/* Rich text (posts, comments, the terms page) */
+.rich { white-space: normal; word-break: break-word; }
+.rich p { margin: 0 0 8px; }
+.rich p:last-child { margin-bottom: 0; }
+.rich ul, .rich ol { margin: 4px 0 8px; padding-right: 22px; }
+.rich a { color: var(--link); text-decoration: underline; }
+.rich blockquote { margin: 6px 0; padding: 6px 14px; border-right: 4px solid var(--orange-light); background: var(--paper); border-radius: 8px; }
+.rich h2 { margin: 22px 0 8px; font-size: 22px; font-weight: 700; color: var(--plum); }
+.rich h3 { margin: 16px 0 6px; font-size: 19px; font-weight: 700; color: var(--plum); }
+.rich-doc p { font-size: 17px; line-height: 1.7; margin: 0 0 10px; }
+[contenteditable].rich:focus { border-color: var(--crimson); box-shadow: 0 0 0 4px var(--focus-ring); }

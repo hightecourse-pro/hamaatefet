@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MemberFrame } from "@/components/member-frame";
-import { PostCard, type FeedPost, type FeedComment } from "./post-card";
+import { getContent } from "@/lib/content";
+import { PostCard, type FeedPost, type FeedComment, type ForumLabels } from "./post-card";
 import { Composer } from "./composer";
 
 export const metadata = { title: "הפורום" };
@@ -11,16 +12,14 @@ const ALL = { key: "all", name: "הכל", description: "כל מה שקורה ב�
 
 export default async function ForumPage({ searchParams }: { searchParams: Promise<{ section?: string; q?: string }> }) {
   const { userId, profile } = await requireActive();
+  const isAdmin = profile.role === "admin";
   const { section: sectionParam, q } = await searchParams;
   const supabase = await createClient();
+  const c = await getContent();
 
-  const [{ data: sectionsRaw }, { data: moderation }] = await Promise.all([
-    supabase.from("forum_sections").select("*").eq("visible", true).order("sort_order"),
-    supabase.from("settings").select("value").eq("key", "forum_moderation").maybeSingle(),
-  ]);
+  const { data: sectionsRaw } = await supabase.from("forum_sections").select("*").eq("visible", true).order("sort_order");
   const sections = sectionsRaw ?? [];
   const current = sections.find((s) => s.key === sectionParam)?.key ?? "all";
-  const moderated = !!(moderation?.value as { enabled?: boolean } | null)?.enabled;
 
   let query = supabase.from("post_feed").select("*").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(60);
   if (current !== "all") query = query.eq("section_key", current);
@@ -42,18 +41,24 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
     })(),
   ]);
   const comments = commentsRaw ?? [];
-  const authorIds = Array.from(new Set(comments.map((c) => c.author_id)));
+  const authorIds = Array.from(new Set(comments.map((x) => x.author_id)));
   const { data: authors } = authorIds.length ? await supabase.from("member_directory").select("id, first_name, last_name").in("id", authorIds) : { data: [] };
   const nameOf = new Map((authors ?? []).map((a) => [a.id, `${a.first_name} ${a.last_name}`.trim() || "חברת המעטפת"]));
   const commentsByPost = new Map<string, FeedComment[]>();
-  for (const c of comments) {
-    const list = commentsByPost.get(c.post_id) ?? [];
-    list.push({ id: c.id, author_id: c.author_id, author_name: nameOf.get(c.author_id) ?? "חברת המעטפת", body: c.body, created_at: c.created_at });
-    commentsByPost.set(c.post_id, list);
+  for (const x of comments) {
+    const list = commentsByPost.get(x.post_id) ?? [];
+    list.push({ id: x.id, author_id: x.author_id, author_name: nameOf.get(x.author_id) ?? "חברת המעטפת", body: x.body, created_at: x.created_at });
+    commentsByPost.set(x.post_id, list);
   }
 
-  const feedTitle = current === "all" ? "מה חדש בפורום" : (sections.find((s) => s.key === current)?.name ?? "");
+  const feedTitle = current === "all" ? c.get("forum.feed.title") : (sections.find((s) => s.key === current)?.name ?? "");
   const tiles = [ALL, ...sections];
+  const labels: ForumLabels = {
+    like: c.get("forum.like"),
+    commentPlaceholder: c.get("forum.comment.placeholder"),
+    commentButton: c.get("forum.comment.button"),
+    commentEmpty: c.get("forum.comment.empty"),
+  };
 
   return (
     <MemberFrame profile={profile} current="forum">
@@ -63,35 +68,31 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 56px", display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 24, position: "relative" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <span className="hand" style={{ fontSize: 20, color: "#F6C9A6" }}>
-              תוכן שיתופי חברתי בדיגיטל
+              {c.get("forum.tagline")}
             </span>
-            <h1 style={{ margin: 0, fontSize: "clamp(48px, 7vw, 76px)", fontWeight: 700, lineHeight: 1, color: "#FFFFFF" }}>הפורום</h1>
-            <p style={{ margin: "6px 0 0", fontSize: 19, maxWidth: 520, lineHeight: 1.55 }}>תכנים, מאחורי הקלעים, עזרה הדדית ודיונים קבוצתיים. היכנסי והכירי את המדורים החדשים!</p>
+            <h1 style={{ margin: 0, fontSize: "clamp(48px, 7vw, 76px)", fontWeight: 700, lineHeight: 1, color: "#FFFFFF" }}>{c.get("forum.title")}</h1>
+            <p style={{ margin: "6px 0 0", fontSize: 19, maxWidth: 520, lineHeight: 1.55, whiteSpace: "pre-line" }}>{c.get("forum.intro")}</p>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
             <form action="/forum" method="get" style={{ position: "relative", display: "block" }}>
               {current !== "all" && <input type="hidden" name="section" value={current} />}
               <label>
                 <span className="sr-only">חיפוש בפורום</span>
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={q ?? ""}
-                  placeholder="מחפשת משהו?"
-                  style={{ width: 260, height: 52, boxSizing: "border-box", borderRadius: 999, border: "none", padding: "0 48px 0 18px", fontSize: 17, background: "#FFF3EA", color: "#3A1530" }}
-                />
+                <input type="search" name="q" defaultValue={q ?? ""} placeholder={c.get("forum.search")} style={{ width: 260, height: 52, boxSizing: "border-box", borderRadius: 999, border: "none", padding: "0 48px 0 18px", fontSize: 17, background: "#FFF3EA", color: "#3A1530" }} />
               </label>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A5566" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ position: "absolute", right: 18, top: 16 }}>
                 <circle cx="11" cy="11" r="7" />
                 <path d="M20 20l-3.5-3.5" />
               </svg>
             </form>
-            <a href="#composer" style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 52, padding: "0 22px", borderRadius: 999, background: "#F0A35E", color: "#3A1530", fontSize: 18, fontWeight: 700, textDecoration: "none", boxShadow: "4px 4px 0 #2A0C25" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              דיון חדש
-            </a>
+            {isAdmin && (
+              <a href="#composer" style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 52, padding: "0 22px", borderRadius: 999, background: "#F0A35E", color: "#3A1530", fontSize: 18, fontWeight: 700, textDecoration: "none", boxShadow: "4px 4px 0 #2A0C25" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                {c.get("forum.new")}
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -107,23 +108,7 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
                 href={href}
                 className="sec"
                 aria-pressed={on}
-                style={{
-                  flex: "1 1 200px",
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 8,
-                  textAlign: "right",
-                  padding: 20,
-                  borderRadius: 24,
-                  cursor: "pointer",
-                  color: "#3A1530",
-                  textDecoration: "none",
-                  background: "#FFFFFF",
-                  border: on ? `3px solid ${s.color}` : "2px solid #F0E2D8",
-                  boxShadow: on ? `6px 6px 0 ${s.color}` : "4px 4px 0 #EBD4C8",
-                }}
+                style={{ flex: "1 1 200px", position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, textAlign: "right", padding: 20, borderRadius: 24, cursor: "pointer", color: "#3A1530", textDecoration: "none", background: "#FFFFFF", border: on ? `3px solid ${s.color}` : "2px solid #F0E2D8", boxShadow: on ? `6px 6px 0 ${s.color}` : "4px 4px 0 #EBD4C8" }}
               >
                 {s.is_new && (
                   <span className="hand" style={{ position: "absolute", top: -12, left: 14, background: "#F0A35E", color: "#3A1530", fontSize: 14, fontWeight: 600, padding: "3px 12px", borderRadius: 999, transform: "rotate(-8deg)" }}>
@@ -149,28 +134,37 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
                 <span className="grad">{q ? `תוצאות עבור "${q}"` : feedTitle}</span>
               </h2>
               <span className="hand" style={{ fontSize: 17, color: "#7A5566" }}>
-                הכי חדש למעלה
+                {c.get("forum.feed.note")}
               </span>
             </div>
             {posts.length === 0 && (
               <div className="surface" style={{ textAlign: "center", padding: 36, color: "#6A4558", fontSize: 17 }}>
-                {q ? "לא מצאנו כלום. נסי מילה אחרת?" : "עדיין שקט כאן. את יכולה להיות הראשונה – הטופס מחכה לך בצד."}
+                {q ? "לא מצאנו כלום. נסי מילה אחרת?" : c.get("forum.empty")}
               </div>
             )}
             {posts.map((p) => (
-              <PostCard key={p.id} post={p} comments={commentsByPost.get(p.id) ?? []} imageUrl={p.image_path ? signed.get(p.image_path) ?? null : null} userId={userId} />
+              <PostCard key={p.id} post={p} comments={commentsByPost.get(p.id) ?? []} imageUrl={p.image_path ? (signed.get(p.image_path) ?? null) : null} userId={userId} labels={labels} />
             ))}
           </div>
 
           <aside style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 24 }}>
-            <Composer sections={sections.map((s) => ({ key: s.key, name: s.name }))} moderated={moderated} userId={userId} />
+            {isAdmin ? (
+              <Composer sections={sections.map((s) => ({ key: s.key, name: s.name }))} userId={userId} title={c.get("forum.composer.title")} button={c.get("forum.composer.button")} />
+            ) : (
+              <section style={{ background: "#FBF1EA", border: "2px solid #EAD3C6", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 10, boxShadow: "6px 6px 0 #4A1942", transform: "rotate(1deg)" }}>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{c.get("forum.member.title")}</h2>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{c.get("forum.member.text")}</p>
+              </section>
+            )}
             <section style={{ background: "#FFFFFF", border: "2px dashed #E2C8BB", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
               <h2 className="hand" style={{ margin: 0, fontSize: 22, color: "#A3304A" }}>
-                כללי הבית
+                {c.get("forum.rules.title")}
               </h2>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6 }}>מה שנאמר במעטפת – נשאר במעטפת.</p>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6 }}>מדברות בגובה העיניים ומפרגנות בלי חשבון.</p>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6 }}>שאלה טיפשית? אין דבר כזה.</p>
+              {c.lines("forum.rules").map((line, i) => (
+                <p key={i} style={{ margin: 0, fontSize: 16, lineHeight: 1.6 }}>
+                  {line}
+                </p>
+              ))}
             </section>
           </aside>
         </div>

@@ -7,6 +7,7 @@ import { decorateEvents, todayIso } from "@/lib/events";
 import { hebrewToday, monthName, hebrewDateLabel, timeRange } from "@/lib/hebrew";
 import { toggleRegistration, toggleTopicTeam } from "@/app/(app)/events-actions";
 import { ToggleButton } from "@/components/toggle-button";
+import { getContent } from "@/lib/content";
 import { Agenda } from "./agenda";
 
 export const metadata = { title: "חוגגות חודש טוב" };
@@ -30,9 +31,9 @@ const ICON = (d: string, extra?: React.ReactNode) => (
 export default async function BirthdayPage() {
   const { userId, profile } = await requireActive();
   const supabase = await createClient();
+  const c = await getContent();
   const today = hebrewToday();
 
-  // The current monthly meeting: this Hebrew month's party; else the next one by date.
   let { data: current } = await supabase.from("events").select("*").eq("type", "birthday").eq("published", true).eq("hebrew_year", today.year).eq("hebrew_month", today.month).maybeSingle();
   if (!current) {
     const { data: upcoming } = await supabase.from("events").select("*").eq("type", "birthday").eq("published", true).gte("event_date", todayIso()).order("event_date").limit(1);
@@ -59,22 +60,18 @@ export default async function BirthdayPage() {
         <Balloon cls="bal3" left="22%" top={20} color="#FCD5B5" w={48} h={60} string={100} />
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 64px", display: "flex", flexDirection: "column", gap: 12, position: "relative" }}>
           <span className="hand" style={{ fontSize: 20, color: "#F6C9A6" }}>
-            מפגשי יומולדת
+            {c.get("bday.tagline")}
           </span>
-          <h1 style={{ margin: 0, fontSize: "clamp(48px, 7vw, 80px)", fontWeight: 700, lineHeight: 1.05, color: "#FFFFFF" }}>
-            חוגגות <span style={{ whiteSpace: "nowrap" }}>חודש טוב</span>
-          </h1>
+          <h1 style={{ margin: 0, fontSize: "clamp(48px, 7vw, 80px)", fontWeight: 700, lineHeight: 1.05, color: "#FFFFFF" }}>{c.get("bday.title")}</h1>
           <div className="hand" style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 24, lineHeight: 1.5, marginTop: 8 }}>
             <span>
-              יומולדת זה דבר שמח? <span style={{ color: "#F0A35E" }}>תלוי מתי.</span>
+              {c.get("bday.q1")} <span style={{ color: "#F0A35E" }}>{c.get("bday.a1")}</span>
             </span>
             <span>
-              יומולדת זה דבר עצוב? <span style={{ color: "#F0A35E" }}>תלוי עם מי.</span>
+              {c.get("bday.q2")} <span style={{ color: "#F0A35E" }}>{c.get("bday.a2")}</span>
             </span>
           </div>
-          <p style={{ margin: "10px 0 0", fontSize: 19, lineHeight: 1.6, maxWidth: 640 }}>
-            מוזמנת ליומולדת אמיתי, רק שלנו: עם עוגה וחטיפים, עם בלונים וחיוכים, ועם תוכן הכי הכי מחבר ונוגע, שרק אנחנו מבינות. על הנושא אחראיות – בעלות השמחה :)
-          </p>
+          <p style={{ margin: "10px 0 0", fontSize: 19, lineHeight: 1.6, maxWidth: 640, whiteSpace: "pre-line" }}>{c.get("bday.intro")}</p>
         </div>
       </section>
 
@@ -83,14 +80,14 @@ export default async function BirthdayPage() {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span className="hand" style={{ fontSize: 18, color: "#A3304A" }}>
-                המפגש החודשי הקרוב
+                {c.get("bday.next.label")}
               </span>
               <h2 id="when" style={{ margin: 0, fontSize: 40, fontWeight: 700, lineHeight: 1.1 }}>
                 <span className="grad">{title}</span>
               </h2>
             </div>
             <a href="#archive" style={{ fontSize: 16, padding: "10px 0" }}>
-              מפגשים קודמים
+              {c.get("bday.archive.link")}
             </a>
           </div>
 
@@ -100,15 +97,15 @@ export default async function BirthdayPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <Image src="/brand/seal.png" alt="" width={56} height={56} style={{ width: 56, height: 56, transform: "rotate(-12deg)" }} />
-                    <span style={{ fontSize: 28, fontWeight: 700, color: "#6E0F1A" }}>את מבעלות השמחה החודש!</span>
+                    <span style={{ fontSize: 28, fontWeight: 700, color: "#6E0F1A" }}>{c.get("bday.host.title")}</span>
                   </span>
-                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>בעלות השמחה בוחרות יחד את נושא הערב. רוצה לקחת חלק בצוות הנושא?</p>
+                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, whiteSpace: "pre-line" }}>{c.get("bday.host.text")}</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 4, alignItems: "center" }}>
                     {current ? (
                       <ToggleButton
                         on={inTeam}
-                        onLabel="את בצוות הנושא!"
-                        offLabel="אני רוצה להיות בצוות הנושא"
+                        onLabel={c.get("bday.team.joined")}
+                        offLabel={c.get("bday.team.join")}
                         action={toggleTopicTeam.bind(null, current.id)}
                         onStyle={{ minHeight: 50, padding: "0 22px", borderRadius: 16, fontSize: 17, fontWeight: 600, cursor: "pointer", background: "#FFFFFF", color: "#2F6B3A", border: "2px solid #2F6B3A" }}
                         offStyle={{ minHeight: 50, padding: "0 22px", borderRadius: 16, fontSize: 17, fontWeight: 600, cursor: "pointer", background: "#A3304A", color: "#FFF3EA", border: "2px solid #A3304A", boxShadow: "3px 3px 0 #4A1942" }}
@@ -125,21 +122,21 @@ export default async function BirthdayPage() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <span style={{ fontSize: 26, fontWeight: 700, color: "#6E0F1A" }}>חוגגות את ילידות {monthName(meetingMonth)}</span>
-                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }}>בואי לשמוח איתן – הערב שלהן הוא גם שלך. המסיבה שלך תגיע בחודש שבו נולדת.</p>
+                  <span style={{ fontSize: 26, fontWeight: 700, color: "#6E0F1A" }}>{c.get("bday.guest.title", { חודש: monthName(meetingMonth) })}</span>
+                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, whiteSpace: "pre-line" }}>{c.get("bday.guest.text")}</p>
                 </div>
               )}
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: "auto", paddingTop: 12, borderTop: "1.5px dashed #E2C8BB", fontSize: 16, color: "#5A3348" }}>
                 <span>
-                  חודש הלידה שלך: <strong>{monthName(profile.birth_month) || "לא נבחר"}</strong>
+                  {c.get("bday.mymonth")} <strong>{monthName(profile.birth_month) || "לא נבחר"}</strong>
                 </span>
                 <Link href="/profile" style={{ padding: "8px 4px" }}>
-                  שינוי בחשבון שלי
+                  {c.get("bday.mymonth.link")}
                 </Link>
               </div>
             </div>
             <div style={{ flex: "1 1 280px", background: "#FFFFFF", borderRadius: 20, padding: 20, display: "flex", flexDirection: "column", gap: 10, boxShadow: "5px 5px 0 #6E0F1A", transform: "rotate(-1.5deg)" }}>
-              <strong style={{ fontSize: 20 }}>פרטי המפגש</strong>
+              <strong style={{ fontSize: 20 }}>{c.get("bday.details.title")}</strong>
               <span style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 17 }}>
                 {ICON("M16 3v4M8 3v4M3 11h18", <rect x="3" y="5" width="18" height="16" rx="3" />)}
                 {current?.event_date ? hebrewDateLabel(current.event_date) : "התאריך יפורסם בקרוב"}
@@ -160,10 +157,10 @@ export default async function BirthdayPage() {
               {current && view ? (
                 <ToggleButton
                   on={view.registered}
-                  onLabel="מגיעה! (ביטול)"
-                  offLabel="אני באה לחגוג"
+                  onLabel={c.get("bday.rsvp.done")}
+                  offLabel={c.get("bday.rsvp")}
                   disabled={view.full || !current.event_date}
-                  disabledLabel={!current.event_date ? "ההרשמה תיפתח בקרוב" : "המקומות נגמרו"}
+                  disabledLabel={!current.event_date ? "ההרשמה תיפתח בקרוב" : c.get("home.band.full")}
                   action={toggleRegistration.bind(null, current.id, "/birthday")}
                   onStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#FFFFFF", color: "#2F6B3A", border: "2px solid #2F6B3A" }}
                   offStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#6E0F1A", color: "#FFF3EA", border: "2px solid #6E0F1A" }}
@@ -178,27 +175,27 @@ export default async function BirthdayPage() {
         <section aria-labelledby="agenda" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <h2 id="agenda" style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-              <span className="grad">מה מחכה לנו במפגש</span>
+              <span className="grad">{c.get("bday.agenda.title")}</span>
             </h2>
             <p className="hand" style={{ margin: 0, fontSize: 18, color: "#7A5566" }}>
-              הפירוט המורחב של הדיונים
+              {c.get("bday.agenda.subtitle")}
             </p>
           </div>
           {agenda && agenda.length > 0 ? (
-            <Agenda items={agenda.map((a) => ({ id: a.id, time_label: a.time_label, title: a.title, body: a.body, questions: a.questions }))} />
+            <Agenda items={agenda.map((a) => ({ id: a.id, time_label: a.time_label, title: a.title, body: a.body, questions: a.questions }))} questionsLabel={c.get("bday.questions")} />
           ) : (
             <div className="surface" style={{ color: "#6A4558", fontSize: 17, textAlign: "center", padding: 28 }}>
-              בעלות השמחה עוד בוחרות את הנושא. הפירוט יתפרסם כאן.
+              {c.get("bday.agenda.empty")}
             </div>
           )}
         </section>
 
         <section id="archive" aria-labelledby="archive-h" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <h2 id="archive-h" style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>
-            <span className="grad">מפגשים קודמים</span>
+            <span className="grad">{c.get("bday.archive.title")}</span>
           </h2>
           {(past ?? []).length === 0 ? (
-            <span style={{ fontSize: 16, color: "#7A5566" }}>זה עוד לא קרה – המסיבה הראשונה לפנינו.</span>
+            <span style={{ fontSize: 16, color: "#7A5566" }}>{c.get("bday.archive.empty")}</span>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
               {(past ?? []).map((p) => (

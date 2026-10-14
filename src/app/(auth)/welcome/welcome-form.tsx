@@ -9,18 +9,20 @@ const LABEL = { display: "flex", flexDirection: "column", gap: 8, fontSize: 16, 
 export function WelcomeForm({
   initial,
   email,
+  copy,
 }: {
   initial: { first_name: string; last_name: string; phone: string; birth_month: number | null; over_30_confirmed: boolean };
   email: string;
+  copy: { title: string; subtitle: string; age: string };
 }) {
   const [state, action, pending] = useActionState<WelcomeState, FormData>(completeProfile, { error: null });
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700 }}>
-        <span className="grad">ברוכה הבאה למעטפת</span>
+        <span className="grad">{copy.title}</span>
       </h1>
       <p className="hand" style={{ margin: "-6px 0 2px", fontSize: 18, color: "#7A5566" }}>
-        כמה פרטים קטנים לפני שנכנסות
+        {copy.subtitle}
       </p>
       {state.error && (
         <p role="alert" className="flash flash-err" style={{ margin: 0 }}>
@@ -62,7 +64,7 @@ export function WelcomeForm({
       </div>
       <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 15, cursor: "pointer", lineHeight: 1.5 }}>
         <input type="checkbox" name="over_30" defaultChecked={initial.over_30_confirmed} style={{ width: 20, height: 20, marginTop: 2, accentColor: "#A3304A", flex: "none" }} />
-        אני מאשרת שאני בת 30 ומעלה (זה הגיל של הקהילה)
+        {copy.age}
       </label>
       <button type="submit" className="cta" disabled={pending}>
         {pending ? "שומרת…" : "פותחת את המעטפה"}
