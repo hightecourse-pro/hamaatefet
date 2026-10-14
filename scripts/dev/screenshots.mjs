@@ -1,7 +1,7 @@
 // node scripts/dev/screenshots.mjs [outDir] – full-page screenshots of every staging screen (member + admin + phone).
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
-const BASE = "https://hamaatefet.vercel.app";
+const BASE = "https://hamaatefet-staging.vercel.app";
 const OUT = process.argv[2] ?? "screenshots";
 const FIX = JSON.parse(readFileSync("e2e/fixtures.json", "utf8")).accounts;
 const browser = await chromium.launch();

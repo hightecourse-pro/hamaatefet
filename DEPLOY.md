@@ -8,7 +8,7 @@ integration is required; git branches `staging` / `main` track what is where.
 
 | | staging | production |
 |---|---|---|
-| Vercel | `hamaatefet` → https://hamaatefet.vercel.app | `hamaatefet-prod` → https://hamaatefet-prod.vercel.app |
+| Vercel | `hamaatefet-staging` → https://hamaatefet-staging.vercel.app | `hamaatefet` → https://hamaatefet.vercel.app |
 | Supabase | `hamaatefet-staging` (eu-central-1) | `hamaatefet-production` – **to be created in a free organization** |
 
 Steps for a new environment:

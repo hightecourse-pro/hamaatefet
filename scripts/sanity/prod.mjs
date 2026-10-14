@@ -1,6 +1,6 @@
 // Production sanity – runs after EVERY production deploy. No logins, no writes:
 // public pages render, gated routes redirect, nothing 500s.
-const BASE = process.env.SANITY_BASE ?? "https://hamaatefet-prod.vercel.app";
+const BASE = process.env.SANITY_BASE ?? "https://hamaatefet.vercel.app";
 const out = [];
 const ok = (name, cond, extra = "") => out.push(`${cond ? "PASS" : "FAIL"} ${name}${extra ? " - " + extra : ""}`);
 

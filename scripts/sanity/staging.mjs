@@ -3,7 +3,7 @@
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 
-const BASE = process.env.SANITY_BASE ?? "https://hamaatefet.vercel.app";
+const BASE = process.env.SANITY_BASE ?? "https://hamaatefet-staging.vercel.app";
 const FIX = JSON.parse(readFileSync(new URL("../../e2e/fixtures.json", import.meta.url), "utf8")).accounts;
 const ADMIN = FIX.find((a) => a.key === "admin");
 const MEMBER = FIX.find((a) => a.key === "member");

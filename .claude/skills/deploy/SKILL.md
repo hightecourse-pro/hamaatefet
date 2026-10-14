@@ -9,8 +9,8 @@ Two live environments. **Nothing reaches production without the owner saying yes
 
 | | staging | production |
 |---|---|---|
-| URL | `https://hamaatefet.vercel.app` | `https://hamaatefet-prod.vercel.app` |
-| Vercel project | `hamaatefet` | `hamaatefet-prod` |
+| URL | `https://hamaatefet-staging.vercel.app` | `https://hamaatefet.vercel.app` |
+| Vercel project | `hamaatefet-staging` | `hamaatefet` |
 | Supabase ref | `STAGING_REF` in `.env.deploy.local` | `PROD_REF` in `.env.deploy.local` |
 | git branch | `staging` | `main` |
 | holds | QA fixtures, safe to break | real members |
@@ -52,7 +52,7 @@ node scripts/sanity/staging.mjs
 Then the regression suite against staging (resets the QA fixtures before and after):
 
 ```bash
-E2E_BASE_URL=https://hamaatefet.vercel.app npx playwright test
+E2E_BASE_URL=https://hamaatefet-staging.vercel.app npx playwright test
 ```
 
 Matched to what changed:

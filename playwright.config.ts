@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Local dev server by default; E2E_BASE_URL=https://hamaatefet.vercel.app targets staging.
+// Local dev server by default; E2E_BASE_URL=https://hamaatefet-staging.vercel.app targets staging.
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const isLocal = baseURL.includes("localhost");
 
