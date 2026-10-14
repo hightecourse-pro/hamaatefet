@@ -70,8 +70,9 @@ await admin.from("events").delete().like("title", "QA %");
 await admin.from("forum_sections").delete().like("name", "QA %");
 await admin.from("settings").upsert({ key: "forum_moderation", value: { enabled: false } });
 
-// This month's birthday party gets a date, so RSVP and the host view can be exercised.
+// This month's birthday party gets a date (a weekday – never Friday/Shabbat), so RSVP and the host view can be exercised.
 const in10 = new Date(Date.now() + 10 * 24 * 3600 * 1000);
+while ([5, 6].includes(in10.getUTCDay())) in10.setUTCDate(in10.getUTCDate() + 1);
 const dateStr = in10.toISOString().slice(0, 10);
 const { data: party } = await admin.from("events").select("id").eq("type", "birthday").eq("hebrew_year", thisYear).eq("hebrew_month", thisMonth).maybeSingle();
 const partyPatch = { title: `מסיבת ${["תשרי", "חשון", "כסלו", "טבת", "שבט", "אדר", "ניסן", "אייר", "סיון", "תמוז", "אב", "אלול"][thisMonth - 1]}`, event_date: dateStr, start_time: "20:00", end_time: "22:30", location: "מינהל קהילתי בית וגן, רח׳ לויכטר 9", topic: "", published: true };

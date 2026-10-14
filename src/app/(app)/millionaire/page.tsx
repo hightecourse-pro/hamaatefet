@@ -140,7 +140,7 @@ export default async function MillionairePage() {
               const dm = dayAndMonth(h.event_date);
               const kc = KIND_COLORS[h.kind ?? "other"];
               return (
-                <article key={h.id} className="host" style={{ flex: "1 1 300px", background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 26, padding: 22, display: "flex", flexDirection: "column", gap: 14, boxShadow: "6px 6px 0 #F3DCCB", transform: `rotate(${ROT[i % 3]}deg)` }}>
+                <article key={h.id} className="host" style={{ flex: "1 1 300px", maxWidth: 460, background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 26, padding: 22, display: "flex", flexDirection: "column", gap: 14, boxShadow: "6px 6px 0 #F3DCCB", transform: `rotate(${ROT[i % 3]}deg)` }}>
                   <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                     <div style={{ flex: "none", width: 74, height: 80, borderRadius: 18, background: "#6E0F1A", color: "#FBE3D6", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
                       <span style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{dm.day}</span>

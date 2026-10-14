@@ -49,7 +49,7 @@ export default async function AdminEventsPage() {
             )}
             {list.map((e) => (
               <tr key={e.id} style={{ opacity: e.published ? 1 : 0.6 }}>
-                <td style={{ fontWeight: 600 }}>
+                <td style={{ fontWeight: 600, whiteSpace: "normal", minWidth: 160 }}>
                   <Link href={`/admin/events/${e.id}`} style={{ textDecoration: "none", color: "#3A1530" }}>
                     {e.title}
                   </Link>
@@ -64,7 +64,7 @@ export default async function AdminEventsPage() {
                   {e.event_date ? hebrewDateLabel(e.event_date) : "[מועד]"}
                   {timeRange(e.start_time, e.end_time) ? ` · ${timeRange(e.start_time, e.end_time)}` : ""}
                 </td>
-                <td>{e.location || "[מקום]"}</td>
+                <td style={{ whiteSpace: "normal", minWidth: 160 }}>{e.location || "[מקום]"}</td>
                 <td>{e.price_ils > 0 ? `${e.price_ils} ש״ח` : "חינם"}</td>
                 <td>
                   {counts.get(e.id) ?? 0} / {e.capacity ?? "∞"}
