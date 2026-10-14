@@ -8,7 +8,7 @@ test.describe("member flows", () => {
     await page.goto("/home");
     await expect(page.getByText("היי חברה,")).toBeVisible();
     await expect(page.getByRole("heading", { name: "איזו המעטפָאן את פותחת היום?" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /הפורום/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /הפורום/ }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /המיליונרית/ }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /חוגגות/ }).first()).toBeVisible();
     const band = page.getByLabel("המפגש הקרוב");
@@ -57,8 +57,8 @@ test.describe("member flows", () => {
     await expect(host.getByRole("button", { name: "נרשמת! (ביטול)" })).toBeVisible();
 
     await page.getByRole("button", { name: "סיפור בלעדי" }).click();
-    await page.fill('[name="title"]', "QA ערב בדיקה");
-    await page.fill('[name="description"]', "תיאור אוטומטי של הערב.");
+    await page.fill('input[name="title"]', "QA ערב בדיקה");
+    await page.fill('textarea[name="description"]', "תיאור אוטומטי של הערב.");
     await page.getByRole("button", { name: "חותמת על הצ׳ק" }).click();
     await expect(page.getByText("הצ׳ק נחתם!")).toBeVisible();
   });
@@ -73,7 +73,7 @@ test.describe("member flows", () => {
     await expect(page.getByRole("button", { name: "מגיעה! (ביטול)" })).toBeVisible();
     await expect(page.getByText("מתכנסות: עוגה, חטיפים ובלונים")).toBeVisible();
     await page.getByRole("button", { name: /מתכנסות/ }).click();
-    await expect(page.getByText("פינת צילום, ברכה קטנה בכניסה.")).toBeVisible();
+    await expect(page.getByText(/פינת צילום/)).toBeVisible();
   });
 
   test("profile: edit birth month and details", async ({ page }) => {

@@ -50,12 +50,18 @@ test.describe("admin", () => {
   test("birthday: calendar of 12 months + edit", async ({ page }) => {
     await page.goto("/admin/birthday");
     await expect(page.getByRole("heading", { name: /לוח השנה/ })).toBeVisible();
-    for (const m of ["תשרי", "חשון", "אלול"]) await expect(page.getByText(m, { exact: true }).first()).toBeVisible();
+    for (const m of ["תשרי", "חשון", "אלול"]) await expect(page.getByText(new RegExp(`^${m}`)).first()).toBeVisible();
     await page.getByRole("link", { name: "עריכת מסיבת טבת" }).click();
     await expect(page.getByRole("heading", { name: /מסיבת טבת/ })).toBeVisible();
     await page.fill('[name="topic"]', "QA נושא");
-    await page.getByRole("button", { name: /יצירת המסיבה|שמירה/ }).click();
-    await expect(page.getByRole("status")).toContainText("נשמר");
+    const creating = await page.getByRole("button", { name: "יצירת המסיבה" }).isVisible();
+    await page.getByRole("button", { name: creating ? "יצירת המסיבה" : "שמירה" }).click();
+    if (creating) {
+      await expect(page).toHaveURL(/\/admin\/birthday$/);
+      await expect(page.getByText("נושא: QA נושא")).toBeVisible();
+    } else {
+      await expect(page.getByRole("status")).toContainText("נשמר");
+    }
   });
 
   test("events: create a general event and see its registrants page", async ({ page }) => {

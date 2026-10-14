@@ -28,7 +28,7 @@ test.describe("public + gating", () => {
     await page.selectOption('[name="birth_month"]', "2");
     await page.check('[name="terms"]');
     await page.getByRole("button", { name: "שולחת בקשת הצטרפות" }).click();
-    await expect(page.getByRole("alert")).toContainText("30");
+    await expect(page.locator("p[role=\"alert\"]")).toContainText("30");
   });
 
   test("forgot password shows the sent screen", async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe("public + gating", () => {
     await page.fill('input[name="email"]', account("member").email);
     await page.fill('input[name="password"]', "wrong-password");
     await page.getByRole("button", { name: "פותחת את המעטפה" }).click();
-    await expect(page.getByRole("alert")).toContainText("לא נכונים");
+    await expect(page.locator("p[role=\"alert\"]")).toContainText("לא נכונים");
   });
 
   test("a pending member lands on the waiting screen", async ({ page }) => {
