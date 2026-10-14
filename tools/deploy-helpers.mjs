@@ -1,8 +1,8 @@
 // Shared helpers for the deploy/ops scripts. Reads hamaatefet/.env.deploy.local; never prints secrets.
 //
 // Two Supabase access tokens, because Supabase tokens are organization-scoped:
-//   SUPABASE_ACCESS_TOKEN      → the free org (production project)
-//   SUPABASE_ACCESS_TOKEN_PRO  → the Pro org (the Micro staging project)
+//   SUPABASE_ACCESS_TOKEN      → the free org (the staging project)
+//   SUPABASE_ACCESS_TOKEN_PRO  → the Pro org (the Micro production project)
 // supa() picks the token from the project ref in the path.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -33,7 +33,7 @@ export function vercelProjectFor(env) {
 
 /** The access token that can see this project. */
 export function tokenFor(ref) {
-  if (ref && ref === ENV.STAGING_REF && ENV.SUPABASE_ACCESS_TOKEN_PRO) return ENV.SUPABASE_ACCESS_TOKEN_PRO;
+  if (ref && ref === ENV.PROD_REF && ENV.SUPABASE_ACCESS_TOKEN_PRO) return ENV.SUPABASE_ACCESS_TOKEN_PRO;
   return ENV.SUPABASE_ACCESS_TOKEN;
 }
 

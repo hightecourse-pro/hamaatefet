@@ -9,7 +9,7 @@ integration is required; git branches `staging` / `main` track what is where.
 | | staging | production |
 |---|---|---|
 | Vercel | `hamaatefet-staging` → https://hamaatefet-staging.vercel.app | `hamaatefet` → https://hamaatefet.vercel.app |
-| Supabase | `hamaatefet-staging` – Micro in the Pro org (~$10/mo; the owner's cap) | `hamaatefet-production` – FREE org `hamaatefet-prod` (the account's single free slot; the other is קוד פתוח's staging) |
+| Supabase | `hamaatefet-staging` – FREE org `hamaatefet-prod` (the account's single free slot; the other is קוד פתוח's staging) | `hamaatefet-production` – Micro in the Pro org (~$10/mo; the owner's cap) |
 
 Steps for a new environment:
 
