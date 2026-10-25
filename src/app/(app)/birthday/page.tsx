@@ -50,7 +50,7 @@ export default async function BirthdayPage() {
     supabase.from("events").select("id, title, event_date, topic, hebrew_month").eq("type", "birthday").eq("published", true).lt("event_date", todayIso()).order("event_date", { ascending: false }).limit(12),
   ]);
   const inTeam = !!team;
-  const title = current?.title || `מסיבת ${monthName(meetingMonth)}`;
+  const title = current?.title || c.get("bday.party", { חודש: monthName(meetingMonth) });
 
   return (
     <MemberFrame profile={profile} current="birthday">
@@ -106,16 +106,17 @@ export default async function BirthdayPage() {
                         on={inTeam}
                         onLabel={c.get("bday.team.joined")}
                         offLabel={c.get("bday.team.join")}
+                        waitLabel={c.get("general.wait")}
                         action={toggleTopicTeam.bind(null, current.id)}
                         onStyle={{ minHeight: 50, padding: "0 22px", borderRadius: 16, fontSize: 17, fontWeight: 600, cursor: "pointer", background: "#FFFFFF", color: "#2F6B3A", border: "2px solid #2F6B3A" }}
                         offStyle={{ minHeight: 50, padding: "0 22px", borderRadius: 16, fontSize: 17, fontWeight: 600, cursor: "pointer", background: "#A3304A", color: "#FFF3EA", border: "2px solid #A3304A", boxShadow: "3px 3px 0 #4A1942" }}
                       />
                     ) : (
-                      <span style={{ fontSize: 15, color: "#7A5566" }}>צוות הנושא ייפתח כשהצוות יפרסם את פרטי המפגש.</span>
+                      <span style={{ fontSize: 15, color: "#7A5566" }}>{c.get("bday.team.soon")}</span>
                     )}
                     {teamCount > 0 && (
                       <span className="hand" style={{ fontSize: 15, color: "#7A5566" }}>
-                        כבר בצוות: {teamCount}
+                        {c.get("bday.team.count", { מספר: teamCount })}
                       </span>
                     )}
                   </div>
@@ -128,7 +129,7 @@ export default async function BirthdayPage() {
               )}
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: "auto", paddingTop: 12, borderTop: "1.5px dashed #E2C8BB", fontSize: 16, color: "#5A3348" }}>
                 <span>
-                  {c.get("bday.mymonth")} <strong>{monthName(profile.birth_month) || "לא נבחר"}</strong>
+                  {c.get("bday.mymonth")} <strong>{monthName(profile.birth_month) || c.get("bday.mymonth.none")}</strong>
                 </span>
                 <Link href="/profile" style={{ padding: "8px 4px" }}>
                   {c.get("bday.mymonth.link")}
@@ -139,19 +140,19 @@ export default async function BirthdayPage() {
               <strong style={{ fontSize: 20 }}>{c.get("bday.details.title")}</strong>
               <span style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 17 }}>
                 {ICON("M16 3v4M8 3v4M3 11h18", <rect x="3" y="5" width="18" height="16" rx="3" />)}
-                {current?.event_date ? hebrewDateLabel(current.event_date) : "התאריך יפורסם בקרוב"}
+                {current?.event_date ? hebrewDateLabel(current.event_date) : c.get("bday.details.date_tbd")}
               </span>
               <span style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 17 }}>
                 {ICON("M12 7v5l3 2", <circle cx="12" cy="12" r="9" />)}
-                {current ? timeRange(current.start_time, current.end_time) || "השעה תפורסם בקרוב" : "—"}
+                {current ? timeRange(current.start_time, current.end_time) || c.get("bday.details.time_tbd") : "—"}
               </span>
               <span style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 17 }}>
                 {ICON("M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z", <circle cx="12" cy="10" r="2.5" />)}
-                {current?.location || "המקום יפורסם בקרוב"}
+                {current?.location || c.get("bday.details.place_tbd")}
               </span>
               {current?.topic && (
                 <span style={{ fontSize: 16, color: "#5A3348" }}>
-                  נושא הערב: <strong>{current.topic}</strong>
+                  {c.get("bday.details.topic")} <strong>{current.topic}</strong>
                 </span>
               )}
               {current && view ? (
@@ -159,14 +160,15 @@ export default async function BirthdayPage() {
                   on={view.registered}
                   onLabel={c.get("bday.rsvp.done")}
                   offLabel={c.get("bday.rsvp")}
+                  waitLabel={c.get("general.wait")}
                   disabled={view.full || !current.event_date}
-                  disabledLabel={!current.event_date ? "ההרשמה תיפתח בקרוב" : c.get("home.band.full")}
+                  disabledLabel={!current.event_date ? c.get("bday.rsvp.soon") : c.get("home.band.full")}
                   action={toggleRegistration.bind(null, current.id, "/birthday")}
                   onStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#FFFFFF", color: "#2F6B3A", border: "2px solid #2F6B3A" }}
                   offStyle={{ marginTop: "auto", minHeight: 50, borderRadius: 16, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#6E0F1A", color: "#FFF3EA", border: "2px solid #6E0F1A" }}
                 />
               ) : (
-                <span style={{ marginTop: "auto", fontSize: 15, color: "#7A5566" }}>ההרשמה תיפתח כשיפורסמו הפרטים.</span>
+                <span style={{ marginTop: "auto", fontSize: 15, color: "#7A5566" }}>{c.get("bday.rsvp.pending")}</span>
               )}
             </div>
           </div>
@@ -202,7 +204,7 @@ export default async function BirthdayPage() {
                 <div key={p.id} className="mo" style={{ flex: "1 1 220px", background: "#FFFCFA", border: "2px solid #F0E2D8", borderRadius: 18, padding: 16, display: "flex", flexDirection: "column", gap: 4 }}>
                   <strong style={{ fontSize: 20, color: "#6E0F1A" }}>{p.title}</strong>
                   <span style={{ fontSize: 15, color: "#6A4558" }}>{hebrewDateLabel(p.event_date)}</span>
-                  {p.topic && <span style={{ fontSize: 15, color: "#6A4558" }}>נושא: {p.topic}</span>}
+                  {p.topic && <span style={{ fontSize: 15, color: "#6A4558" }}>{c.get("bday.archive.topic", { נושא: p.topic })}</span>}
                 </div>
               ))}
             </div>

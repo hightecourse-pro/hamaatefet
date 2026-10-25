@@ -9,6 +9,7 @@ export const metadata = { title: "החשבון שלי" };
 export default async function ProfilePage() {
   const { profile, email } = await requireActive();
   const c = await getContent();
+  const copy = c.copy("profile.", "field.", "pw.", "auth.signout", "auth.err.password");
   return (
     <MemberFrame profile={profile} current="profile">
       <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 24px 72px", display: "flex", flexDirection: "column", gap: 28 }}>
@@ -27,14 +28,14 @@ export default async function ProfilePage() {
             {c.get("profile.birthday.title")}
           </h2>
           <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{c.get("profile.birthday.text")}</p>
-          <BirthdayForm birthMonth={profile.birth_month} remind={profile.remind_birthday} remindLabel={c.get("profile.remind")} />
+          <BirthdayForm birthMonth={profile.birth_month} remind={profile.remind_birthday} copy={copy} />
         </section>
 
         <section aria-labelledby="det" style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 28, padding: 26, display: "flex", flexDirection: "column", gap: 16 }}>
           <h2 id="det" style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>
             {c.get("profile.details.title")}
           </h2>
-          <DetailsForm firstName={profile.first_name} lastName={profile.last_name} email={email} phone={profile.phone} />
+          <DetailsForm firstName={profile.first_name} lastName={profile.last_name} email={email} phone={profile.phone} copy={copy} />
         </section>
       </main>
     </MemberFrame>

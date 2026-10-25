@@ -8,6 +8,7 @@ export function ToggleButton({
   on,
   onLabel,
   offLabel,
+  waitLabel,
   onStyle,
   offStyle,
   action,
@@ -17,6 +18,8 @@ export function ToggleButton({
   on: boolean;
   onLabel: string;
   offLabel: string;
+  /** Shown while the server answers ("רגע…" – editable as general.wait). */
+  waitLabel: string;
   onStyle: CSSProperties;
   offStyle: CSSProperties;
   action: () => Promise<ToggleState>;
@@ -40,7 +43,7 @@ export function ToggleButton({
         }
         style={{ ...(on ? onStyle : offStyle), opacity: pending || disabled ? 0.7 : 1 }}
       >
-        {disabled && disabledLabel ? disabledLabel : pending ? "רגע…" : on ? onLabel : offLabel}
+        {disabled && disabledLabel ? disabledLabel : pending ? waitLabel : on ? onLabel : offLabel}
       </button>
       {error && (
         <span role="alert" style={{ fontSize: 14, color: "#A3304A" }}>

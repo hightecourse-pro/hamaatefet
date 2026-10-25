@@ -1,25 +1,29 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import type { ContentGroup } from "@/lib/content";
+import type { ContentGroup } from "@/lib/content-registry";
 import { saveContentGroup, type AdminState } from "../actions";
 import { RichEditor } from "@/components/rich-editor";
 
-export function ContentGroupForm({ group, overrides }: { group: ContentGroup; overrides: Record<string, string> }) {
+export function ContentGroupForm({ group, overrides, visibleKeys = null, forceOpen = false }: { group: ContentGroup; overrides: Record<string, string>; visibleKeys?: Set<string> | null; forceOpen?: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<AdminState, FormData>(saveContentGroup.bind(null, group.key), { error: null });
   const changed = group.fields.filter((f) => overrides[f.key] !== undefined && overrides[f.key] !== "").length;
+  const fields = visibleKeys ? group.fields.filter((f) => visibleKeys.has(f.key)) : group.fields;
+  const isOpen = open || forceOpen;
   return (
     <section style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, border: "none", background: "transparent", cursor: "pointer", textAlign: "right", padding: 0 }}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={isOpen} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, border: "none", background: "transparent", cursor: "pointer", textAlign: "right", padding: 0 }}>
         <span style={{ fontSize: 24, fontWeight: 700 }} className="grad">
           {group.title}
         </span>
         <span style={{ fontSize: 14, color: "#6A4558" }}>
-          {group.fields.length} שדות{changed ? ` · ${changed} שונו` : ""} {open ? "▲" : "▼"}
+          {visibleKeys ? `${fields.length} מתוך ${group.fields.length} שדות` : `${group.fields.length} שדות`}
+          {changed ? ` · ${changed} שונו` : ""} {isOpen ? "▲" : "▼"}
         </span>
       </button>
-      {open && (
+      {isOpen && group.description && <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: "#5A3348" }}>{group.description}</p>}
+      {isOpen && (
         <form action={action} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {state.error && (
             <p role="alert" className="flash flash-err" style={{ margin: 0 }}>
@@ -31,7 +35,7 @@ export function ContentGroupForm({ group, overrides }: { group: ContentGroup; ov
               {state.ok}
             </p>
           )}
-          {group.fields.map((f) => {
+          {fields.map((f) => {
             const current = overrides[f.key] ?? "";
             const isChanged = current !== "" && current !== f.default;
             return (
@@ -60,7 +64,7 @@ export function ContentGroupForm({ group, overrides }: { group: ContentGroup; ov
             );
           })}
           <button type="submit" className="btn-primary" disabled={pending} style={{ alignSelf: "flex-start", height: 46, fontSize: 16 }}>
-            {pending ? "שומרת…" : "שמירת הקבוצה"}
+            {pending ? "שומרת…" : visibleKeys ? "שמירת השדות שמוצגים" : "שמירת הקבוצה"}
           </button>
         </form>
       )}

@@ -19,7 +19,7 @@ export default async function WelcomePage() {
       <WelcomeForm
         initial={{ first_name: profile.first_name, last_name: profile.last_name, phone: profile.phone, birth_month: profile.birth_month, over_30_confirmed: profile.over_30_confirmed }}
         email={profile.email}
-        copy={{ title: c.get("auth.welcome.title"), subtitle: c.get("auth.welcome.subtitle"), age: c.get("auth.signup.age") }}
+        copy={c.copy("auth.welcome.", "auth.signup.age", "field.")}
       />
     </AuthShell>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fredoka, Playpen_Sans_Hebrew } from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/site";
+import { getContent } from "@/lib/content";
 
 const fredoka = Fredoka({
   subsets: ["latin", "hebrew"],
@@ -17,13 +18,18 @@ const playpen = Playpen_Sans_Hebrew({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: { default: "המעטפת", template: "%s · המעטפת" },
-  description: "המעטפת – קהילת נשים מבית חד או פאן. הפורום, המיליונרית וחוגגות חודש טוב.",
-  robots: { index: false, follow: false },
-  icons: { icon: "/icon.png" },
-};
+/** The site name and description come from «תוכן האתר» (general.brand / general.meta_description). */
+export async function generateMetadata(): Promise<Metadata> {
+  const c = await getContent();
+  const brand = c.get("general.brand");
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    title: { default: brand, template: `%s · ${brand}` },
+    description: c.get("general.meta_description"),
+    robots: { index: false, follow: false },
+    icons: { icon: "/icon.png" },
+  };
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

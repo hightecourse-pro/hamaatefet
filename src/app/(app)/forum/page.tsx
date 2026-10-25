@@ -3,12 +3,10 @@ import { requireActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
-import { PostCard, type FeedPost, type FeedComment, type ForumLabels } from "./post-card";
+import { PostCard, type FeedPost, type FeedComment } from "./post-card";
 import { Composer } from "./composer";
 
 export const metadata = { title: "הפורום" };
-
-const ALL = { key: "all", name: "הכל", description: "כל מה שקורה במעטפת, במקום אחד", color: "#3A1530", tint: "#F3E6EE", icon: "M4 6h16M4 12h16M4 18h10", is_new: false };
 
 export default async function ForumPage({ searchParams }: { searchParams: Promise<{ section?: string; q?: string }> }) {
   const { userId, profile } = await requireActive();
@@ -16,6 +14,7 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
   const { section: sectionParam, q } = await searchParams;
   const supabase = await createClient();
   const c = await getContent();
+  const ALL = { key: "all", name: c.get("forum.all"), description: c.get("forum.all.desc"), color: "#3A1530", tint: "#F3E6EE", icon: "M4 6h16M4 12h16M4 18h10", is_new: false };
 
   const { data: sectionsRaw } = await supabase.from("forum_sections").select("*").eq("visible", true).order("sort_order");
   const sections = sectionsRaw ?? [];
@@ -43,22 +42,17 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
   const comments = commentsRaw ?? [];
   const authorIds = Array.from(new Set(comments.map((x) => x.author_id)));
   const { data: authors } = authorIds.length ? await supabase.from("member_directory").select("id, first_name, last_name").in("id", authorIds) : { data: [] };
-  const nameOf = new Map((authors ?? []).map((a) => [a.id, `${a.first_name} ${a.last_name}`.trim() || "חברת המעטפת"]));
+  const nameOf = new Map((authors ?? []).map((a) => [a.id, `${a.first_name} ${a.last_name}`.trim() || c.get("general.member_fallback")]));
   const commentsByPost = new Map<string, FeedComment[]>();
   for (const x of comments) {
     const list = commentsByPost.get(x.post_id) ?? [];
-    list.push({ id: x.id, author_id: x.author_id, author_name: nameOf.get(x.author_id) ?? "חברת המעטפת", body: x.body, created_at: x.created_at });
+    list.push({ id: x.id, author_id: x.author_id, author_name: nameOf.get(x.author_id) ?? c.get("general.member_fallback"), body: x.body, created_at: x.created_at });
     commentsByPost.set(x.post_id, list);
   }
 
   const feedTitle = current === "all" ? c.get("forum.feed.title") : (sections.find((s) => s.key === current)?.name ?? "");
   const tiles = [ALL, ...sections];
-  const labels: ForumLabels = {
-    like: c.get("forum.like"),
-    commentPlaceholder: c.get("forum.comment.placeholder"),
-    commentButton: c.get("forum.comment.button"),
-    commentEmpty: c.get("forum.comment.empty"),
-  };
+  const copy = c.copy("forum.", "general.", "editor.");
 
   return (
     <MemberFrame profile={profile} current="forum">
@@ -77,7 +71,7 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
             <form action="/forum" method="get" style={{ position: "relative", display: "block" }}>
               {current !== "all" && <input type="hidden" name="section" value={current} />}
               <label>
-                <span className="sr-only">חיפוש בפורום</span>
+                <span className="sr-only">{c.get("forum.search")}</span>
                 <input type="search" name="q" defaultValue={q ?? ""} placeholder={c.get("forum.search")} style={{ width: 260, height: 52, boxSizing: "border-box", borderRadius: 999, border: "none", padding: "0 48px 0 18px", fontSize: 17, background: "#FFF3EA", color: "#3A1530" }} />
               </label>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A5566" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ position: "absolute", right: 18, top: 16 }}>
@@ -112,7 +106,7 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
               >
                 {s.is_new && (
                   <span className="hand" style={{ position: "absolute", top: -12, left: 14, background: "#F0A35E", color: "#3A1530", fontSize: 14, fontWeight: 600, padding: "3px 12px", borderRadius: 999, transform: "rotate(-8deg)" }}>
-                    חדש!
+                    {c.get("forum.new_badge")}
                   </span>
                 )}
                 <span style={{ width: 48, height: 48, borderRadius: 16, background: s.tint, display: "flex", alignItems: "center", justifyContent: "center", color: s.color }}>
@@ -131,7 +125,7 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
           <div style={{ flex: "999 1 560px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
               <h2 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">{q ? `תוצאות עבור "${q}"` : feedTitle}</span>
+                <span className="grad">{q ? c.get("forum.search.results", { חיפוש: q }) : feedTitle}</span>
               </h2>
               <span className="hand" style={{ fontSize: 17, color: "#7A5566" }}>
                 {c.get("forum.feed.note")}
@@ -139,17 +133,17 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
             </div>
             {posts.length === 0 && (
               <div className="surface" style={{ textAlign: "center", padding: 36, color: "#6A4558", fontSize: 17 }}>
-                {q ? "לא מצאנו כלום. נסי מילה אחרת?" : c.get("forum.empty")}
+                {q ? c.get("forum.search.empty") : c.get("forum.empty")}
               </div>
             )}
             {posts.map((p) => (
-              <PostCard key={p.id} post={p} comments={commentsByPost.get(p.id) ?? []} imageUrl={p.image_path ? (signed.get(p.image_path) ?? null) : null} userId={userId} labels={labels} />
+              <PostCard key={p.id} post={p} comments={commentsByPost.get(p.id) ?? []} imageUrl={p.image_path ? (signed.get(p.image_path) ?? null) : null} userId={userId} copy={copy} />
             ))}
           </div>
 
           <aside style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 24 }}>
             {isAdmin ? (
-              <Composer sections={sections.map((s) => ({ key: s.key, name: s.name }))} userId={userId} title={c.get("forum.composer.title")} button={c.get("forum.composer.button")} />
+              <Composer sections={sections.map((s) => ({ key: s.key, name: s.name }))} userId={userId} copy={copy} />
             ) : (
               <section style={{ background: "#FBF1EA", border: "2px solid #EAD3C6", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 10, boxShadow: "6px 6px 0 #4A1942", transform: "rotate(1deg)" }}>
                 <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{c.get("forum.member.title")}</h2>

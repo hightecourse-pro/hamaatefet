@@ -5,6 +5,7 @@ import { toggleLike, addComment, deleteOwnPost, deleteOwnComment } from "./actio
 import { timeAgo } from "@/lib/hebrew";
 import { RichHtml } from "@/components/rich-html";
 import { RichEditor } from "@/components/rich-editor";
+import { tx, type Copy } from "@/lib/copy";
 
 export interface FeedPost {
   id: string;
@@ -35,23 +36,18 @@ export interface FeedComment {
   created_at: string;
 }
 
-export interface ForumLabels {
-  like: string;
-  commentPlaceholder: string;
-  commentButton: string;
-  commentEmpty: string;
-}
-
-const CTA: Record<string, string> = { talk: "להצטרף לדיון", bts: "להגיב", content: "להגיב" };
-
-function ctaFor(p: FeedPost): string {
-  if (p.section_key === "help") return p.help_kind === "offering" ? "אשמח!" : "אני יכולה לעזור";
-  return CTA[p.section_key] ?? "להגיב";
+/** The comments button says something different per section (the design). */
+function ctaFor(copy: Copy, p: FeedPost): string {
+  if (p.section_key === "help") return tx(copy, p.help_kind === "offering" ? "forum.cta.help_offering" : "forum.cta.help_asking");
+  if (p.section_key === "talk") return tx(copy, "forum.cta.talk");
+  return tx(copy, "forum.cta.default");
 }
 
 const ACTION_BTN = { display: "flex", alignItems: "center", gap: 6, minHeight: 44, padding: "0 14px", borderRadius: 999, border: "none", background: "#FBEDE4", color: "#6E0F1A", fontSize: 16, cursor: "pointer" } as const;
 
-export function PostCard({ post, comments, imageUrl, userId, labels }: { post: FeedPost; comments: FeedComment[]; imageUrl: string | null; userId: string; labels: ForumLabels }) {
+export function PostCard({ post, comments, imageUrl, userId, copy }: { post: FeedPost; comments: FeedComment[]; imageUrl: string | null; userId: string; copy: Copy }) {
+  const editorLabels = { bold: copy["editor.bold"], italic: copy["editor.italic"], underline: copy["editor.underline"], list: copy["editor.list"], link: copy["editor.link"], linkPrompt: copy["editor.link_prompt"], emoji: copy["editor.emoji"], emojiPicker: copy["editor.emoji_picker"] };
+  const t = (k: string) => tx(copy, k);
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +55,9 @@ export function PostCard({ post, comments, imageUrl, userId, labels }: { post: F
   const [likes, setLikes] = useState(post.like_count);
   const [resetKey, setResetKey] = useState(0);
 
-  const name = `${post.author_first_name} ${post.author_last_name}`.trim() || "חברת המעטפת";
+  const name = `${post.author_first_name} ${post.author_last_name}`.trim() || t("general.member_fallback");
   const initial = (post.author_first_name || post.author_last_name || "מ").charAt(0);
-  const titlePrefix = post.section_key === "help" && post.help_kind ? (post.help_kind === "asking" ? "מבקשת: " : "מציעה: ") : "";
+  const titlePrefix = post.section_key === "help" && post.help_kind ? `${t(post.help_kind === "asking" ? "forum.prefix.asking" : "forum.prefix.offering")} ` : "";
   const mine = post.author_id === userId;
 
   function onLike() {
@@ -102,10 +98,10 @@ export function PostCard({ post, comments, imageUrl, userId, labels }: { post: F
         <span style={{ marginRight: "auto", display: "flex", gap: 6, alignItems: "center" }}>
           {post.pinned && (
             <span className="hand" style={{ fontSize: 14, color: "#9A4318" }}>
-              מוצמד
+              {t("forum.pinned")}
             </span>
           )}
-          {post.status === "hidden" && <span className="pill pill-paused">מוסתר</span>}
+          {post.status === "hidden" && <span className="pill pill-paused">{t("forum.hidden")}</span>}
           <span style={{ padding: "5px 12px", borderRadius: 999, background: post.section_tint, color: post.section_color, fontSize: 14, fontWeight: 600 }}>{post.section_name}</span>
         </span>
       </div>
@@ -123,14 +119,14 @@ export function PostCard({ post, comments, imageUrl, userId, labels }: { post: F
           <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
           </svg>
-          {labels.like}
+          {t("forum.like")}
           {likes > 0 ? ` · ${likes}` : ""}
         </button>
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} style={ACTION_BTN}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          {ctaFor(post)}
+          {ctaFor(copy, post)}
           {comments.length > 0 ? ` · ${comments.length}` : ""}
         </button>
         {mine && (
@@ -139,23 +135,23 @@ export function PostCard({ post, comments, imageUrl, userId, labels }: { post: F
             className="btn-link"
             style={{ marginRight: "auto", fontSize: 14, color: "#7A5566" }}
             onClick={() => {
-              if (window.confirm("למחוק את הפוסט?")) start(async () => void (await deleteOwnPost(post.id)));
+              if (window.confirm(t("forum.delete_confirm"))) start(async () => void (await deleteOwnPost(post.id)));
             }}
           >
-            מחיקה
+            {t("forum.delete")}
           </button>
         )}
       </div>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "#FBF1EA", borderRadius: 16, padding: 14 }}>
-          {comments.length === 0 && <span style={{ fontSize: 15, color: "#7A5566" }}>{labels.commentEmpty}</span>}
+          {comments.length === 0 && <span style={{ fontSize: 15, color: "#7A5566" }}>{t("forum.comment.empty")}</span>}
           {comments.map((x) => (
             <div key={x.id} style={{ display: "flex", flexDirection: "column", gap: 2, background: "#fff", borderRadius: 12, padding: "10px 12px" }}>
               <span style={{ fontSize: 14, color: "#7A5566" }}>
                 <b style={{ color: "#3A1530" }}>{x.author_name}</b> · {timeAgo(x.created_at)}
                 {x.author_id === userId && (
                   <button type="button" className="btn-link" style={{ fontSize: 13, marginRight: 8, padding: 0 }} onClick={() => start(async () => void (await deleteOwnComment(x.id)))}>
-                    מחיקה
+                    {t("forum.delete")}
                   </button>
                 )}
               </span>
@@ -164,9 +160,9 @@ export function PostCard({ post, comments, imageUrl, userId, labels }: { post: F
           ))}
           {post.status === "published" && (
             <form onSubmit={onComment} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <RichEditor key={resetKey} name="comment" placeholder={labels.commentPlaceholder} minHeight={64} compact />
+              <RichEditor key={resetKey} name="comment" placeholder={t("forum.comment.placeholder")} minHeight={64} compact labels={editorLabels} />
               <button type="submit" className="btn-primary" disabled={pending} style={{ height: 48, padding: "0 18px", fontSize: 16, alignSelf: "flex-start" }}>
-                {pending ? "…" : labels.commentButton}
+                {pending ? "…" : t("forum.comment.button")}
               </button>
             </form>
           )}

@@ -19,7 +19,7 @@ export default async function TermsPage() {
           </p>
           <RichHtml html={sanitizeRich(c.get("terms.body"))} className="rich-doc" />
           <p style={{ margin: "18px 0 0" }}>
-            <Link href="/login">חזרה לכניסה</Link>
+            <Link href="/login">{c.get("terms.back")}</Link>
           </p>
         </section>
       </main>

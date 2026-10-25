@@ -5,23 +5,31 @@ import { initialOf } from "@/lib/auth";
 
 export type NavKey = "forum" | "millionaire" | "birthday" | "profile" | "home";
 
-const NAV: { key: NavKey; href: string; contentKey: string; activeColor: string }[] = [
-  { key: "forum", href: "/forum", contentKey: "home.forum.title", activeColor: "#A3304A" },
-  { key: "millionaire", href: "/millionaire", contentKey: "home.mill.title", activeColor: "#B5532F" },
-  { key: "birthday", href: "/birthday", contentKey: "home.bday.title", activeColor: "#A3304A" },
+export interface HeaderLabels {
+  brand: string;
+  forum: string;
+  millionaire: string;
+  birthday: string;
+  admin: string;
+  profile: string;
+}
+
+const NAV: { key: NavKey; href: string; label: keyof HeaderLabels; activeColor: string }[] = [
+  { key: "forum", href: "/forum", label: "forum", activeColor: "#A3304A" },
+  { key: "millionaire", href: "/millionaire", label: "millionaire", activeColor: "#B5532F" },
+  { key: "birthday", href: "/birthday", label: "birthday", activeColor: "#A3304A" },
 ];
 
-export function SiteHeader({ profile, current, labels }: { profile: Profile; current?: NavKey; labels: { forum: string; millionaire: string; birthday: string; admin: string } }) {
+export function SiteHeader({ profile, current, labels }: { profile: Profile; current?: NavKey; labels: HeaderLabels }) {
   const isAdmin = profile.role === "admin";
   const onProfile = current === "profile";
-  const label = (key: string) => (key === "home.forum.title" ? labels.forum : key === "home.mill.title" ? labels.millionaire : labels.birthday);
   return (
     <header style={{ background: "#FFFFFF", borderBottom: "2px solid #F0E2D8" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "14px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <Link href="/home" aria-label="המעטפת – דף הבית" style={{ display: "flex" }}>
-          <Image src="/brand/logo.png" alt="המעטפת" width={138} height={58} priority style={{ height: 58, width: "auto" }} />
+        <Link href="/home" aria-label={labels.brand} style={{ display: "flex" }}>
+          <Image src="/brand/logo.png" alt={labels.brand} width={138} height={58} priority style={{ height: 58, width: "auto" }} />
         </Link>
-        <nav aria-label="ניווט ראשי" style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 18, fontWeight: 500 }}>
+        <nav style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 18, fontWeight: 500 }}>
           {NAV.map((item) => {
             const active = item.key === current;
             return (
@@ -31,7 +39,7 @@ export function SiteHeader({ profile, current, labels }: { profile: Profile; cur
                 aria-current={active ? "page" : undefined}
                 style={active ? { padding: "10px 0", color: item.activeColor, fontWeight: 700, borderBottom: "3px solid #F0A35E", textDecoration: "none" } : { padding: "10px 0", color: "#3A1530", textDecoration: "none" }}
               >
-                {label(item.contentKey)}
+                {labels[item.label]}
               </Link>
             );
           })}
@@ -48,7 +56,7 @@ export function SiteHeader({ profile, current, labels }: { profile: Profile; cur
           )}
           <Link
             href="/profile"
-            aria-label="החשבון שלי"
+            aria-label={labels.profile}
             aria-current={onProfile ? "page" : undefined}
             style={{ width: 44, height: 44, borderRadius: "50%", background: onProfile ? "#6E0F1A" : "#F6D9CB", color: onProfile ? "#FFF3EA" : "#6E0F1A", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, textDecoration: "none", fontSize: 18 }}
           >

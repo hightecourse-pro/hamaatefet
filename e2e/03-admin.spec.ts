@@ -118,4 +118,52 @@ test.describe("admin", () => {
     await page.goto("/home");
     await expect(page.getByRole("heading", { name: "איזו המעטפָאן את פותחת היום?" })).toBeVisible();
   });
+
+  test("site content: form labels are editable too – search, edit, see it on the login screen, reset", async ({ page, browser }) => {
+    await page.goto("/admin/content");
+    await page.getByLabel("חיפוש טקסט").fill("field.email");
+    await expect(page.getByText(/1 מתוך \d+ טקסטים/)).toBeVisible();
+    const field = page.locator('[name="v:field.email"]');
+    await expect(field).toBeVisible();
+    await field.fill("QA כתובת מייל");
+    await page.locator("form").filter({ has: field }).getByRole("button", { name: "שמירת השדות שמוצגים" }).click();
+    await expect(page.getByRole("status")).toContainText("נשמר");
+
+    // browser.newContext() inherits the admin storageState from test.use – start signed out explicitly.
+    const anon = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const login = await anon.newPage();
+    await login.goto("/login");
+    await expect(login.getByText("QA כתובת מייל")).toBeVisible();
+    await anon.close();
+    await page.goto("/profile");
+    await expect(page.getByText("QA כתובת מייל")).toBeVisible();
+
+    await page.goto("/admin/content");
+    await page.getByLabel("חיפוש טקסט").fill("field.email");
+    await page.locator('[name="reset:field.email"]').check();
+    await page.locator("form").filter({ has: page.locator('[name="v:field.email"]') }).getByRole("button", { name: "שמירת השדות שמוצגים" }).click();
+    await expect(page.getByRole("status")).toContainText("נשמר");
+    await page.goto("/profile");
+    await expect(page.getByText("QA כתובת מייל")).toHaveCount(0);
+  });
+
+  test("site content: the auth e-mail group saves and reports the push to the auth provider", async ({ page }) => {
+    await page.goto("/admin/content");
+    await page.getByRole("button", { name: /^מיילי אימות וסיסמה/ }).click();
+    const field = page.locator('[name="v:authmail.confirm.intro"]');
+    await expect(field).toBeVisible();
+    await field.fill("QA עוד צעד אחד קטן");
+    await page.locator("form").filter({ has: field }).getByRole("button", { name: "שמירת הקבוצה" }).click();
+    // With SUPABASE_ACCESS_TOKEN on the project: "מיילי האימות עודכנו". Without it the text is saved and the push failure is reported.
+    const note = page.locator('p[role="status"], p[role="alert"]').first();
+    await expect(note).toContainText("נשמר");
+    const pushed = (await note.textContent())?.includes("מיילי האימות עודכנו") ?? false;
+    test.info().annotations.push({ type: "auth-templates-pushed", description: String(pushed) });
+
+    await page.goto("/admin/content");
+    await page.getByRole("button", { name: /^מיילי אימות וסיסמה/ }).click();
+    await page.locator('[name="reset:authmail.confirm.intro"]').check();
+    await page.locator("form").filter({ has: page.locator('[name="v:authmail.confirm.intro"]') }).getByRole("button", { name: "שמירת הקבוצה" }).click();
+    await expect(page.locator('p[role="status"], p[role="alert"]').first()).toContainText("נשמר");
+  });
 });

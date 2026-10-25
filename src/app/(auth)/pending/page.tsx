@@ -23,7 +23,7 @@ export default async function PendingPage() {
         <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>
           {paused ? c.get("auth.paused.text") : c.get("auth.waiting.text", { שם: profile.first_name })}
         </p>
-        <SignOutButton label="יציאה מהחשבון" />
+        <SignOutButton label={c.get("auth.signout")} />
       </div>
     </AuthShell>
   );

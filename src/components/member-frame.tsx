@@ -8,7 +8,11 @@ export async function MemberFrame({ profile, current, children }: { profile: Pro
   const c = await getContent();
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#FFF8F2", color: "#3A1530", display: "flex", flexDirection: "column" }}>
-      <SiteHeader profile={profile} current={current} labels={{ forum: c.get("home.forum.title"), millionaire: c.get("home.mill.title"), birthday: c.get("home.bday.title"), admin: c.get("general.admin_pill") }} />
+      <SiteHeader
+        profile={profile}
+        current={current}
+        labels={{ brand: c.get("general.brand"), forum: c.get("home.forum.title"), millionaire: c.get("home.mill.title"), birthday: c.get("home.bday.title"), admin: c.get("general.admin_pill"), profile: c.get("profile.title") }}
+      />
       <div style={{ flex: 1 }}>{children}</div>
       <SiteFooter text={c.get("general.footer")} />
       <SessionKeeper />

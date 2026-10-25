@@ -6,43 +6,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { monthOptions } from "@/lib/hebrew";
+import { lines, tx, type Copy } from "@/lib/copy";
 
 export type AuthMode = "login" | "signup" | "pending" | "forgot" | "sent";
-
-/** The screen's copy – from the content registry, passed by the server page. */
-export interface AuthCopy {
-  loginTitle: string;
-  loginSubtitle: string;
-  loginButton: string;
-  noAccount: string;
-  signupTitle: string;
-  signupSubtitle: string;
-  age: string;
-  terms: string;
-  termsLink: string;
-  signupButton: string;
-  pendingTitle: string;
-  pendingText: string;
-  forgotTitle: string;
-  forgotText: string;
-  forgotButton: string;
-  sentTitle: string;
-  sentText: string;
-  sideHeadline: string;
-  sideLines: string[];
-}
 
 const TAB_ON: CSSProperties = { flex: 1, height: 48, border: "none", borderRadius: 999, fontSize: 18, fontWeight: 600, cursor: "pointer", background: "#6E0F1A", color: "#FFF3EA", boxShadow: "3px 3px 0 #4A1942" };
 const TAB_OFF: CSSProperties = { flex: 1, height: 48, border: "none", borderRadius: 999, fontSize: 18, fontWeight: 500, cursor: "pointer", background: "transparent", color: "#6E0F1A" };
 const LABEL: CSSProperties = { display: "flex", flexDirection: "column", gap: 8, fontSize: 16, fontWeight: 500 };
 const LINE_COLORS = ["#C26A7E", "#8E4A86", "#E8894A"];
 
-function EyeButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+export function EyeButton({ shown, onToggle, showLabel, hideLabel }: { shown: boolean; onToggle: () => void; showLabel: string; hideLabel: string }) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={shown ? "הסתרת סיסמה" : "הצגת סיסמה"}
+      aria-label={shown ? hideLabel : showLabel}
       style={{ position: "absolute", left: 4, top: 4, width: 44, height: 44, border: "none", background: "transparent", cursor: "pointer", color: "#7A5566", display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {shown ? (
@@ -59,28 +37,31 @@ function EyeButton({ shown, onToggle }: { shown: boolean; onToggle: () => void }
   );
 }
 
-function friendlyError(code: string | undefined, message: string): string {
+/** Supabase's error codes → the team's wording ("הודעות שגיאה בכניסה ובהרשמה"). */
+function friendlyError(copy: Copy, code: string | undefined, message: string): string {
+  const t = (k: string) => tx(copy, k);
   switch (code) {
     case "invalid_credentials":
-      return "המייל או הסיסמה לא נכונים.";
+      return t("auth.err.credentials");
     case "email_not_confirmed":
-      return "המייל עדיין לא אומת – בדקי את תיבת המייל (גם בספאם) ולחצי על הקישור.";
+      return t("auth.err.unconfirmed");
     case "user_already_exists":
     case "email_exists":
-      return "כבר יש חברה עם המייל הזה. נסי להיכנס, או לבחור סיסמה חדשה.";
+      return t("auth.err.exists");
     case "weak_password":
-      return "הסיסמה חלשה מדי – לפחות 8 תווים.";
+      return t("auth.err.weak");
     case "over_email_send_rate_limit":
     case "over_request_rate_limit":
-      return "שלחנו כבר מייל לפני רגע – חכי דקה ונסי שוב.";
+      return t("auth.err.rate");
     case "validation_failed":
-      return "משהו בפרטים לא תקין – בדקי את המייל.";
+      return t("auth.err.email");
     default:
-      return message.includes("rate limit") ? "יותר מדי ניסיונות – חכי דקה ונסי שוב." : "משהו השתבש. נסי שוב בעוד רגע.";
+      return message.includes("rate limit") ? t("auth.err.rate") : t("auth.err.generic");
   }
 }
 
-export function AuthScreen({ initialMode = "login", copy }: { initialMode?: AuthMode; copy: AuthCopy }) {
+export function AuthScreen({ initialMode = "login", copy }: { initialMode?: AuthMode; copy: Copy }) {
+  const t = (k: string) => tx(copy, k);
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPw, setShowPw] = useState(false);
@@ -104,7 +85,7 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError(friendlyError(error.code, error.message));
+      setError(friendlyError(copy, error.code, error.message));
       setBusy(false);
       return;
     }
@@ -129,20 +110,20 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
     const birth_month = Number(fd.get("birth_month") ?? 0);
     const over_30 = fd.get("over_30") === "on";
     const terms = fd.get("terms") === "on";
-    if (!first_name || !last_name) return setError("ספרי לנו איך קוראים לך – שם פרטי ושם משפחה.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("כתובת המייל לא נראית תקינה.");
-    if (!/^0\d{1,2}-?\d{7}$|^\+?\d{9,13}$/.test(phone.replace(/[\s-]/g, ""))) return setError("מספר הטלפון לא נראה תקין (למשל 050-1234567).");
-    if (password.length < 8) return setError("הסיסמה צריכה להיות לפחות 8 תווים.");
-    if (!(birth_month >= 1 && birth_month <= 12)) return setError("בחרי את חודש הלידה העברי שלך.");
-    if (!over_30) return setError("המעטפת היא קהילה לנשים בנות 30 ומעלה – צריך לאשר את זה כדי להצטרף.");
-    if (!terms) return setError("צריך לאשר את התקנון ומדיניות הפרטיות.");
+    if (!first_name || !last_name) return setError(t("auth.err.name"));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(t("auth.err.email"));
+    if (!/^0\d{1,2}-?\d{7}$|^\+?\d{9,13}$/.test(phone.replace(/[\s-]/g, ""))) return setError(t("auth.err.phone"));
+    if (password.length < 8) return setError(t("auth.err.password"));
+    if (!(birth_month >= 1 && birth_month <= 12)) return setError(t("auth.err.month"));
+    if (!over_30) return setError(t("auth.err.age"));
+    if (!terms) return setError(t("auth.err.terms"));
     setBusy(true);
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { first_name, last_name, phone, birth_month, over_30, terms } } });
     setBusy(false);
-    if (error) return setError(friendlyError(error.code, error.message));
+    if (error) return setError(friendlyError(copy, error.code, error.message));
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-      return setError("כבר יש חברה עם המייל הזה. נסי להיכנס, או לבחור סיסמה חדשה.");
+      return setError(t("auth.err.exists"));
     }
     go("pending");
   }
@@ -151,16 +132,17 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
     e.preventDefault();
     setError(null);
     const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("כתובת המייל לא נראית תקינה.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(t("auth.err.email"));
     setBusy(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     setBusy(false);
-    if (error && error.code !== "user_not_found") return setError(friendlyError(error.code, error.message));
+    if (error && error.code !== "user_not_found") return setError(friendlyError(copy, error.code, error.message));
     go("sent");
   }
 
   const tabsOnSignup = mode === "signup" || mode === "pending";
+  const eye = { showLabel: t("field.show_password"), hideLabel: t("field.hide_password") };
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#FFF8F2", color: "#3A1530", position: "relative", overflow: "hidden" }}>
@@ -172,14 +154,14 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "48px 24px", display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box", position: "relative" }}>
         <section style={{ flex: "1 1 440px", maxWidth: 480, background: "#FFFFFF", borderRadius: 32, padding: "40px 36px", boxShadow: "10px 10px 0 #F3DCCB", border: "2px solid #F0E2D8", position: "relative" }}>
           <Image src="/brand/seal.png" alt="" width={92} height={92} style={{ position: "absolute", top: -34, left: -26, width: 92, height: 92, transform: "rotate(-14deg)" }} />
-          <Image src="/brand/logo.png" alt="המעטפת – מבית חד או פאן" width={220} height={93} priority style={{ width: 220, height: "auto", display: "block", margin: "0 auto 24px" }} />
+          <Image src="/brand/logo.png" alt={t("general.footer")} width={220} height={93} priority style={{ width: 220, height: "auto", display: "block", margin: "0 auto 24px" }} />
 
           <div role="tablist" style={{ display: "flex", gap: 6, background: "#FBEDE4", padding: 6, borderRadius: 999, marginBottom: 28 }}>
             <button role="tab" type="button" aria-selected={!tabsOnSignup} onClick={() => go("login")} style={tabsOnSignup ? TAB_OFF : TAB_ON}>
-              כניסה
+              {t("auth.tab.login")}
             </button>
             <button role="tab" type="button" aria-selected={tabsOnSignup} onClick={() => go("signup")} style={tabsOnSignup ? TAB_ON : TAB_OFF}>
-              הרשמה
+              {t("auth.tab.signup")}
             </button>
           </div>
 
@@ -192,38 +174,38 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
           {mode === "login" && (
             <form onSubmit={onLogin} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-                <span className="grad">{copy.loginTitle}</span>
+                <span className="grad">{t("auth.login.title")}</span>
               </h1>
               <p className="hand" style={{ margin: "-8px 0 4px", fontSize: 18, color: "#7A5566" }}>
-                {copy.loginSubtitle}
+                {t("auth.login.subtitle")}
               </p>
               <label style={LABEL}>
-                מייל
+                {t("field.email")}
                 <input className="fld" name="email" type="email" placeholder="name@example.com" dir="ltr" autoComplete="email" required />
               </label>
               <label style={LABEL}>
-                סיסמה
+                {t("field.password")}
                 <div style={{ position: "relative" }}>
                   <input className="fld" name="password" type={showPw ? "text" : "password"} placeholder="••••••••" autoComplete="current-password" style={{ paddingLeft: 52 }} required />
-                  <EyeButton shown={showPw} onToggle={() => setShowPw((v) => !v)} />
+                  <EyeButton shown={showPw} onToggle={() => setShowPw((v) => !v)} {...eye} />
                 </div>
               </label>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 15 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
                   <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 20, height: 20, accentColor: "#A3304A" }} />
-                  זכרי אותי
+                  {t("auth.login.remember")}
                 </label>
                 <button type="button" className="btn-link" onClick={() => go("forgot")}>
-                  שכחתי סיסמה
+                  {t("auth.login.forgot")}
                 </button>
               </div>
               <button type="submit" className="cta" disabled={busy} style={{ marginTop: 6 }}>
-                {busy ? "פותחת…" : copy.loginButton}
+                {busy ? t("auth.login.busy") : t("auth.login.button")}
               </button>
               <p style={{ margin: "4px 0 0", textAlign: "center", fontSize: 15, color: "#7A5566" }}>
-                {copy.noAccount}{" "}
+                {t("auth.login.noaccount")}{" "}
                 <button type="button" className="btn-link" onClick={() => go("signup")} style={{ fontWeight: 600, padding: "6px 2px" }}>
-                  להרשמה
+                  {t("auth.login.signup_link")}
                 </button>
               </p>
             </form>
@@ -232,42 +214,42 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
           {mode === "signup" && (
             <form onSubmit={onSignup} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700 }}>
-                <span className="grad">{copy.signupTitle}</span>
+                <span className="grad">{t("auth.signup.title")}</span>
               </h1>
               <p className="hand" style={{ margin: "-6px 0 2px", fontSize: 18, color: "#7A5566" }}>
-                {copy.signupSubtitle}
+                {t("auth.signup.subtitle")}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <label style={{ ...LABEL, flex: "1 1 160px" }}>
-                  שם פרטי
-                  <input className="fld" name="first_name" type="text" placeholder="איך קוראים לך?" autoComplete="given-name" required />
+                  {t("field.first_name")}
+                  <input className="fld" name="first_name" type="text" placeholder={t("field.first_name_placeholder")} autoComplete="given-name" required />
                 </label>
                 <label style={{ ...LABEL, flex: "1 1 160px" }}>
-                  שם משפחה
-                  <input className="fld" name="last_name" type="text" placeholder="שם משפחה" autoComplete="family-name" required />
+                  {t("field.last_name")}
+                  <input className="fld" name="last_name" type="text" placeholder={t("field.last_name_placeholder")} autoComplete="family-name" required />
                 </label>
               </div>
               <label style={LABEL}>
-                מייל
+                {t("field.email")}
                 <input className="fld" name="email" type="email" placeholder="name@example.com" dir="ltr" autoComplete="email" required />
               </label>
               <label style={LABEL}>
-                טלפון
-                <input className="fld" name="phone" type="tel" placeholder="050-1234567" dir="ltr" autoComplete="tel" required />
+                {t("field.phone")}
+                <input className="fld" name="phone" type="tel" placeholder={t("field.phone_placeholder")} dir="ltr" autoComplete="tel" required />
               </label>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <label style={{ ...LABEL, flex: "1 1 160px" }}>
-                  סיסמה
+                  {t("field.password")}
                   <div style={{ position: "relative" }}>
-                    <input className="fld" name="password" type={showPw ? "text" : "password"} placeholder="לפחות 8 תווים" autoComplete="new-password" minLength={8} style={{ paddingLeft: 52 }} required />
-                    <EyeButton shown={showPw} onToggle={() => setShowPw((v) => !v)} />
+                    <input className="fld" name="password" type={showPw ? "text" : "password"} placeholder={t("field.password_new_placeholder")} autoComplete="new-password" minLength={8} style={{ paddingLeft: 52 }} required />
+                    <EyeButton shown={showPw} onToggle={() => setShowPw((v) => !v)} {...eye} />
                   </div>
                 </label>
                 <label style={{ ...LABEL, flex: "1 1 160px" }}>
-                  חודש לידה עברי
+                  {t("field.birth_month")}
                   <select className="fld" name="birth_month" defaultValue="" required>
                     <option value="" disabled>
-                      בחרי חודש
+                      {t("field.birth_month_placeholder")}
                     </option>
                     {monthOptions().map((m) => (
                       <option key={m.value} value={m.value}>
@@ -279,19 +261,19 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
               </div>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 15, cursor: "pointer", lineHeight: 1.5 }}>
                 <input type="checkbox" name="over_30" style={{ width: 20, height: 20, marginTop: 2, accentColor: "#A3304A", flex: "none" }} />
-                {copy.age}
+                {t("auth.signup.age")}
               </label>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 15, cursor: "pointer", lineHeight: 1.5 }}>
                 <input type="checkbox" name="terms" style={{ width: 20, height: 20, marginTop: 2, accentColor: "#A3304A", flex: "none" }} />
                 <span>
-                  {copy.terms}{" "}
+                  {t("auth.signup.terms")}{" "}
                   <Link href="/terms" target="_blank">
-                    {copy.termsLink}
+                    {t("auth.signup.terms_link")}
                   </Link>
                 </span>
               </label>
               <button type="submit" className="cta" disabled={busy}>
-                {busy ? "שולחת…" : copy.signupButton}
+                {busy ? t("auth.signup.busy") : t("auth.signup.button")}
               </button>
             </form>
           )}
@@ -300,11 +282,11 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
             <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
               <Image src="/brand/envelope.png" alt="" width={170} height={134} style={{ width: 170, height: "auto", transform: "rotate(-6deg)" }} />
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">{copy.pendingTitle}</span>
+                <span className="grad">{t("auth.pending.title")}</span>
               </h1>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.pendingText}</p>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{t("auth.pending.text")}</p>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ fontWeight: 600, padding: 10 }}>
-                חזרה לכניסה
+                {t("auth.back_to_login")}
               </button>
             </div>
           )}
@@ -312,18 +294,18 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
           {mode === "forgot" && (
             <form onSubmit={onForgot} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700 }}>
-                <span className="grad">{copy.forgotTitle}</span>
+                <span className="grad">{t("auth.forgot.title")}</span>
               </h1>
-              <p style={{ margin: "-4px 0 4px", fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.forgotText}</p>
+              <p style={{ margin: "-4px 0 4px", fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{t("auth.forgot.text")}</p>
               <label style={LABEL}>
-                מייל
+                {t("field.email")}
                 <input className="fld" name="email" type="email" placeholder="name@example.com" dir="ltr" autoComplete="email" required />
               </label>
               <button type="submit" className="cta" disabled={busy}>
-                {busy ? "שולחת…" : copy.forgotButton}
+                {busy ? t("auth.signup.busy") : t("auth.forgot.button")}
               </button>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ padding: 8 }}>
-                נזכרתי, חזרה לכניסה
+                {t("auth.forgot.back")}
               </button>
             </form>
           )}
@@ -332,11 +314,11 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
             <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
               <Image src="/brand/envelope.png" alt="" width={150} height={118} style={{ width: 150, height: "auto", transform: "rotate(8deg)" }} />
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">{copy.sentTitle}</span>
+                <span className="grad">{t("auth.sent.title")}</span>
               </h1>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{copy.sentText}</p>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{t("auth.sent.text")}</p>
               <button type="button" className="btn-link" onClick={() => go("login")} style={{ fontWeight: 600, padding: 10 }}>
-                חזרה לכניסה
+                {t("auth.back_to_login")}
               </button>
             </div>
           )}
@@ -344,11 +326,11 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
 
         <aside style={{ flex: "1 1 420px", maxWidth: 560, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center" }}>
           <p className="hand" style={{ margin: 0, fontSize: 44, color: "#4A1942", transform: "rotate(-4deg)" }}>
-            {copy.sideHeadline}
+            {t("auth.side.headline")}
           </p>
-          <Image className="env" src="/brand/envelope.png" alt="מעטפה חתומה בחותם שעווה" width={440} height={346} priority style={{ width: "min(100%, 440px)", height: "auto" }} />
+          <Image className="env" src="/brand/envelope.png" alt="" width={440} height={346} priority style={{ width: "min(100%, 440px)", height: "auto" }} />
           <div className="hand" style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 26, lineHeight: 1.4, color: "#6E0F1A", marginTop: 12 }}>
-            {copy.sideLines.map((line, i) => {
+            {lines(copy["auth.side.lines"] ?? "").map((line, i) => {
               const [first, ...rest] = line.split(" ");
               return (
                 <span key={i}>

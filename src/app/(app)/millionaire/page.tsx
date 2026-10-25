@@ -2,7 +2,7 @@ import Image from "next/image";
 import { requireActive, displayName } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MemberFrame } from "@/components/member-frame";
-import { decorateEvents, todayIso, KIND_LABEL, KIND_COLORS } from "@/lib/events";
+import { decorateEvents, todayIso, KIND_COLORS } from "@/lib/events";
 import { toggleRegistration } from "@/app/(app)/events-actions";
 import { ToggleButton } from "@/components/toggle-button";
 import { ChequeForm } from "./cheque-form";
@@ -20,8 +20,8 @@ const STEP_COLORS = [
   { bg: "#F1E2EE", fg: "#4A1942" },
 ];
 
-function dayAndMonth(iso: string | null): { day: string; month: string } {
-  if (!iso) return { day: "?", month: "מועד ייקבע" };
+function dayAndMonth(iso: string | null, tbd: string): { day: string; month: string } {
+  if (!iso) return { day: "?", month: tbd };
   const [y, m, d] = iso.split("-").map(Number);
   const hd = new HDate(new Date(Date.UTC(y, m - 1, d, 12)));
   const hm = hd.getMonth();
@@ -81,13 +81,13 @@ export default async function MillionairePage() {
               <span style={{ fontSize: 15, color: "#7A5566" }}>{c.get("mill.cheque.number")}</span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", borderBottom: "2px dashed #D9B79E", paddingBottom: 8 }}>
-              <span style={{ fontSize: 15, color: "#7A5566" }}>לפקודת</span>
+              <span style={{ fontSize: 15, color: "#7A5566" }}>{c.get("mill.cheque.payee_label")}</span>
               <span className="hand" style={{ fontSize: 24, color: "#4A1942" }}>
                 {c.get("mill.cheque.payee")}
               </span>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", borderBottom: "2px dashed #D9B79E", paddingBottom: 8 }}>
-              <span style={{ fontSize: 15, color: "#7A5566" }}>סך של</span>
+              <span style={{ fontSize: 15, color: "#7A5566" }}>{c.get("mill.cheque.amount_label")}</span>
               <span className="hand" style={{ fontSize: 24, color: "#4A1942" }}>
                 {c.get("mill.cheque.amount")}
               </span>
@@ -133,7 +133,7 @@ export default async function MillionairePage() {
           )}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
             {hosts.map((h, i) => {
-              const dm = dayAndMonth(h.event_date);
+              const dm = dayAndMonth(h.event_date, c.get("mill.card.date_tbd"));
               const kc = KIND_COLORS[h.kind ?? "other"];
               return (
                 <article key={h.id} className="host" style={{ flex: "1 1 300px", maxWidth: 460, background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 26, padding: 22, display: "flex", flexDirection: "column", gap: 14, boxShadow: "6px 6px 0 #F3DCCB", transform: `rotate(${ROT[i % 3]}deg)` }}>
@@ -143,7 +143,7 @@ export default async function MillionairePage() {
                       <span style={{ fontSize: 15 }}>{dm.month}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {h.kind && <span style={{ alignSelf: "flex-start", padding: "4px 12px", borderRadius: 999, background: kc.tint, color: kc.color, fontSize: 14, fontWeight: 600 }}>{KIND_LABEL[h.kind]}</span>}
+                      {h.kind && <span style={{ alignSelf: "flex-start", padding: "4px 12px", borderRadius: 999, background: kc.tint, color: kc.color, fontSize: 14, fontWeight: 600 }}>{c.get(`mill.kind.${h.kind}`)}</span>}
                       <span style={{ fontSize: 15, color: "#7A5566" }}>{[h.timeLabel, h.location].filter(Boolean).join(" · ") || hebrewDateLabel(h.event_date)}</span>
                     </div>
                   </div>
@@ -151,7 +151,7 @@ export default async function MillionairePage() {
                   <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: "#5A3348", whiteSpace: "pre-wrap" }}>
                     {h.host_name && (
                       <>
-                        מארחת: {h.host_name}
+                        {c.get("mill.card.host", { שם: h.host_name })}
                         <br />
                       </>
                     )}
@@ -161,6 +161,7 @@ export default async function MillionairePage() {
                     on={h.registered}
                     onLabel={c.get("mill.rsvp.done")}
                     offLabel={c.get("mill.rsvp")}
+                    waitLabel={c.get("general.wait")}
                     disabled={h.full}
                     disabledLabel={c.get("home.band.full")}
                     action={toggleRegistration.bind(null, h.id, "/millionaire")}
@@ -186,7 +187,7 @@ export default async function MillionairePage() {
           <ChequeForm
             defaultName={displayName(profile)}
             months={months}
-            copy={{ question: c.get("mill.propose.question"), button: c.get("mill.propose.button"), sentTitle: c.get("mill.sent.title"), sentText: c.get("mill.sent.text"), sentAgain: c.get("mill.sent.again") }}
+            copy={c.copy("mill.", "general.")}
           />
         </section>
       </main>

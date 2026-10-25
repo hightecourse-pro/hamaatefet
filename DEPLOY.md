@@ -31,6 +31,7 @@ Steps for a new environment:
 | `EMAIL_REPLY_TO` | optional |
 | `EMAIL_ALLOWLIST` | staging only: addresses mail may reach |
 | `CRON_SECRET` | secret; Vercel sends it on the daily cron |
+| `SUPABASE_ACCESS_TOKEN` | secret; the management token of THIS environment's Supabase org (staging = free org, prod = Pro org). Lets «תוכן האתר» push the auth e-mail templates. Without it the texts still save and the push reports `management_not_configured`. |
 
 5. `node tools/deploy.mjs <env>` and the sanity script for that env.
 6. Staging only: `node tools/seed-fixtures.mjs staging`.

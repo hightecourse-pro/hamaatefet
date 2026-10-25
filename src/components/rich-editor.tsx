@@ -19,6 +19,19 @@ const BTN = {
   fontWeight: 700,
 } as const;
 
+export interface EditorLabels {
+  bold: string;
+  italic: string;
+  underline: string;
+  list: string;
+  link: string;
+  linkPrompt: string;
+  emoji: string;
+  emojiPicker: string;
+}
+
+const DEFAULT_LABELS: EditorLabels = { bold: "מודגש", italic: "נטוי", underline: "קו תחתון", list: "רשימה", link: "קישור", linkPrompt: "כתובת הקישור (https://…)", emoji: "אימוג׳י", emojiPicker: "בחירת אימוג׳י" };
+
 /**
  * A small rich-text box (bold, italic, underline, lists, link, emoji) that
  * submits HTML through a hidden input. The server sanitizes before storing.
@@ -30,13 +43,17 @@ export function RichEditor({
   minHeight = 120,
   compact = false,
   initialHtml = "",
+  labels,
 }: {
   name: string;
   placeholder?: string;
   minHeight?: number;
   compact?: boolean;
   initialHtml?: string;
+  /** Tool names (editable as editor.* in «תוכן האתר»); the admin screens use the defaults. */
+  labels?: Partial<EditorLabels>;
 }) {
+  const L: EditorLabels = { ...DEFAULT_LABELS, ...labels };
   const ref = useRef<HTMLDivElement>(null);
   const [html, setHtml] = useState(initialHtml);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -63,7 +80,7 @@ export function RichEditor({
   }
 
   function addLink() {
-    const url = window.prompt("כתובת הקישור (https://…)");
+    const url = window.prompt(L.linkPrompt);
     if (!url) return;
     const safe = /^(https?:\/\/|mailto:|tel:)/i.test(url) ? url : `https://${url}`;
     cmd("createLink", safe);
@@ -73,31 +90,31 @@ export function RichEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 6, position: "relative" }}>
       <input type="hidden" name={name} value={html} />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <button type="button" style={BTN} title="מודגש" aria-label="מודגש" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("bold")}>
+        <button type="button" style={BTN} title={L.bold} aria-label={L.bold} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("bold")}>
           B
         </button>
-        <button type="button" style={{ ...BTN, fontStyle: "italic", fontWeight: 500 }} title="נטוי" aria-label="נטוי" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("italic")}>
+        <button type="button" style={{ ...BTN, fontStyle: "italic", fontWeight: 500 }} title={L.italic} aria-label={L.italic} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("italic")}>
           I
         </button>
-        <button type="button" style={{ ...BTN, textDecoration: "underline", fontWeight: 500 }} title="קו תחתון" aria-label="קו תחתון" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("underline")}>
+        <button type="button" style={{ ...BTN, textDecoration: "underline", fontWeight: 500 }} title={L.underline} aria-label={L.underline} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("underline")}>
           U
         </button>
         {!compact && (
           <>
-            <button type="button" style={BTN} title="רשימה" aria-label="רשימה" onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("insertUnorderedList")}>
+            <button type="button" style={BTN} title={L.list} aria-label={L.list} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("insertUnorderedList")}>
               ≡
             </button>
-            <button type="button" style={BTN} title="קישור" aria-label="קישור" onMouseDown={(e) => e.preventDefault()} onClick={addLink}>
+            <button type="button" style={BTN} title={L.link} aria-label={L.link} onMouseDown={(e) => e.preventDefault()} onClick={addLink}>
               🔗
             </button>
           </>
         )}
-        <button type="button" style={BTN} title="אימוג׳י" aria-label="אימוג׳י" aria-expanded={emojiOpen} onMouseDown={(e) => e.preventDefault()} onClick={() => setEmojiOpen((v) => !v)}>
+        <button type="button" style={BTN} title={L.emoji} aria-label={L.emoji} aria-expanded={emojiOpen} onMouseDown={(e) => e.preventDefault()} onClick={() => setEmojiOpen((v) => !v)}>
           😊
         </button>
       </div>
       {emojiOpen && (
-        <div role="dialog" aria-label="בחירת אימוג׳י" style={{ position: "absolute", top: 42, right: 0, zIndex: 5, background: "#fff", border: "2px solid #EAD3C6", borderRadius: 16, padding: 10, display: "grid", gridTemplateColumns: "repeat(8, 34px)", gap: 4, boxShadow: "4px 4px 0 #EBD4C8" }}>
+        <div role="dialog" aria-label={L.emojiPicker} style={{ position: "absolute", top: 42, right: 0, zIndex: 5, background: "#fff", border: "2px solid #EAD3C6", borderRadius: 16, padding: 10, display: "grid", gridTemplateColumns: "repeat(8, 34px)", gap: 4, boxShadow: "4px 4px 0 #EBD4C8" }}>
           {EMOJI.map((e) => (
             <button key={e} type="button" onMouseDown={(ev) => ev.preventDefault()} onClick={() => insertEmoji(e)} style={{ width: 34, height: 34, border: "none", background: "transparent", fontSize: 22, cursor: "pointer", borderRadius: 8 }}>
               {e}

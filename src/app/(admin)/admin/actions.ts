@@ -8,7 +8,8 @@ import { approvedEmail, pausedEmail, sendEmail } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site";
 import { hebrewToday } from "@/lib/hebrew";
 import { parseAgenda } from "@/lib/agenda";
-import { CONTENT_GROUPS } from "@/lib/content";
+import { CONTENT_GROUPS, contentFrom, getContent } from "@/lib/content";
+import { pushAuthTemplates } from "@/lib/auth-mail";
 import { sanitizeRich } from "@/lib/rich-text";
 
 export interface AdminState {
@@ -33,10 +34,10 @@ export async function setMemberStatus(id: string, status: "active" | "paused" | 
   const { error } = await admin.from("profiles").update(patch).eq("id", id);
   if (error) return { error: "לא הצלחנו לעדכן." };
   if (status === "active" && before.status === "pending") {
-    const built = approvedEmail(before.first_name, getSiteUrl());
+    const built = approvedEmail(await getContent(), before.first_name, getSiteUrl());
     await sendEmail({ to: before.email, subject: built.subject, html: built.html });
   } else if (status === "paused" && before.status === "active") {
-    const built = pausedEmail(before.first_name);
+    const built = pausedEmail(await getContent(), before.first_name);
     await sendEmail({ to: before.email, subject: built.subject, html: built.html });
   }
   revalidateAdmin([`/admin/members/${id}`]);
@@ -255,5 +256,12 @@ export async function saveContentGroup(groupKey: string, _prev: AdminState, fd: 
     if (error) return { error: "לא הצלחנו לשמור." };
   }
   revalidatePath("/", "layout");
+  // The auth-provider e-mails (and the footer they share) live outside the app: push them on save.
+  if (group.key === "auth_emails" || group.key === "emails") {
+    const { data: rows } = await admin.from("site_content").select("key, value");
+    const r = await pushAuthTemplates(contentFrom(Object.fromEntries((rows ?? []).map((x) => [x.key, x.value]))), getSiteUrl());
+    if (!r.ok) return { error: `נשמר באתר, אבל מיילי האימות אצל ספק ההזדהות לא עודכנו (${r.error}). נסי שוב או כתבי לצוות הטכני.` };
+    return { error: null, ok: "נשמר. השינויים כבר באתר, ומיילי האימות עודכנו אצל ספק ההזדהות." };
+  }
   return { error: null, ok: "נשמר. השינויים כבר באתר." };
 }

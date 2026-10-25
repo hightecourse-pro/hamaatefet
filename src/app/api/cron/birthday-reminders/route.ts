@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { birthdayReminderEmail, sendEmail } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site";
 import { hebrewDateLabel, monthName, timeRange } from "@/lib/hebrew";
+import { contentFrom } from "@/lib/content";
 
 /**
  * Daily (vercel.json): seven days before a birthday party, remind the women
@@ -15,6 +16,8 @@ export async function GET(request: NextRequest) {
   if (!secret || auth !== `Bearer ${secret}`) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
+  const { data: contentRows } = await admin.from("site_content").select("key, value");
+  const c = contentFrom(Object.fromEntries((contentRows ?? []).map((r) => [r.key, r.value])));
   const target = new Date(Date.now() + 7 * 24 * 3600 * 1000);
   const iso = new Date(target.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
   const dateStr = `${iso.getFullYear()}-${String(iso.getMonth() + 1).padStart(2, "0")}-${String(iso.getDate()).padStart(2, "0")}`;
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
     let sent = 0;
     let blocked = 0;
     for (const h of hosts ?? []) {
-      const built = birthdayReminderEmail(h.first_name, monthName(ev.hebrew_month), `${hebrewDateLabel(ev.event_date)} ${timeRange(ev.start_time, ev.end_time)}`.trim(), ev.location, getSiteUrl());
+      const built = birthdayReminderEmail(c, h.first_name, monthName(ev.hebrew_month), `${hebrewDateLabel(ev.event_date)} ${timeRange(ev.start_time, ev.end_time)}`.trim(), ev.location, getSiteUrl());
       const r = await sendEmail({ to: h.email, subject: built.subject, html: built.html });
       if (r.ok) sent++;
       else blocked++;

@@ -17,7 +17,7 @@ const PALETTE = [
   { color: "#6E0F1A", tint: "#F6DADC" },
 ];
 
-export function Agenda({ items, questionsLabel = "שאלות לדיון" }: { items: AgendaItem[]; questionsLabel?: string }) {
+export function Agenda({ items, questionsLabel }: { items: AgendaItem[]; questionsLabel: string }) {
   const [open, setOpen] = useState<number>(items.length > 1 ? 1 : 0);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

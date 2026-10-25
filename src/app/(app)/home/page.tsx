@@ -145,7 +145,7 @@ export default async function HomePage() {
                 {event.dateLabel}
                 {event.timeLabel ? ` | ${event.timeLabel}` : ""}
               </span>
-              {event.location && <span>ב{event.location}</span>}
+              {event.location && <span>{c.get("home.band.location", { מקום: event.location })}</span>}
               <span>
                 {event.price_ils > 0 ? c.get("home.band.price", { מחיר: event.price_ils }) : c.get("home.band.free")}
                 {event.capacity ? ` – ${c.get("home.band.limited")}` : ""}
@@ -155,6 +155,7 @@ export default async function HomePage() {
               on={event.registered}
               onLabel={c.get("home.band.registered")}
               offLabel={c.get("home.band.cta")}
+              waitLabel={c.get("general.wait")}
               disabled={event.full}
               disabledLabel={c.get("home.band.full")}
               action={toggleRegistration.bind(null, event.id, "/home")}

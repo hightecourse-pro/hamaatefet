@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { AuthScreen } from "@/components/auth/auth-screen";
-import { authCopy } from "@/components/auth/auth-copy";
 import { getSession, homeFor } from "@/lib/auth";
 import { getContent } from "@/lib/content";
 
@@ -10,13 +9,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const session = await getSession();
   if (session) redirect(homeFor(session.profile));
   const { error } = await searchParams;
-  const banner =
-    error === "expired"
-      ? "הקישור פג תוקף. בקשי קישור חדש דרך «שכחתי סיסמה» או הירשמי שוב."
-      : error === "link"
-        ? "הקישור לא תקין או שכבר נוצל. אפשר לבקש קישור חדש."
-        : null;
-  const content = await getContent();
+  const c = await getContent();
+  const banner = error === "expired" ? c.get("auth.link.expired") : error === "link" ? c.get("auth.link.invalid") : null;
   return (
     <>
       {banner && (
@@ -24,7 +18,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {banner}
         </p>
       )}
-      <AuthScreen initialMode="login" copy={authCopy(content)} />
+      <AuthScreen initialMode="login" copy={c.copy("auth.", "field.", "general.")} />
     </>
   );
 }

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { newMemberAlertEmail, sendEmailToMany } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site";
 import { monthName } from "@/lib/hebrew";
+import { getContent } from "@/lib/content";
 
 const TYPES: EmailOtpType[] = ["signup", "recovery", "invite", "magiclink", "email", "email_change"];
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         const { data: admins } = await admin.from("profiles").select("email").eq("role", "admin").eq("status", "active");
         const emails = (admins ?? []).map((a) => a.email).filter(Boolean);
         if (emails.length) {
-          const built = newMemberAlertEmail({ name: `${p.first_name} ${p.last_name}`.trim(), email: p.email, phone: p.phone, birthMonth: monthName(p.birth_month) }, `${getSiteUrl()}/admin?status=pending`);
+          const built = newMemberAlertEmail(await getContent(), { name: `${p.first_name} ${p.last_name}`.trim(), email: p.email, phone: p.phone, birthMonth: monthName(p.birth_month) }, `${getSiteUrl()}/admin?status=pending`);
           await sendEmailToMany(emails, built.subject, built.html);
         }
       }

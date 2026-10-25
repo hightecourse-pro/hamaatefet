@@ -94,7 +94,11 @@ node scripts/sanity/prod.mjs
 
 Supabase Auth (site URL, SMTP through Resend, Hebrew e-mail templates linking
 to `/auth/confirm`) is set per environment by
-`node tools/configure-auth.mjs <env> <site-url>`. Re-run it after changing a
+`node tools/configure-auth.mjs <env> <site-url>`. The WORDING of those e-mails is
+also editable by the team in «תוכן האתר» (group «מיילי אימות וסיסמה»): saving
+renders the templates from `src/lib/content-registry.ts` + overrides and pushes
+them with `SUPABASE_ACCESS_TOKEN` (a Vercel secret per environment). Re-running
+configure-auth.mjs resets them to the registry defaults. Re-run it after changing a
 template; never edit templates in the dashboard.
 
 ## Email

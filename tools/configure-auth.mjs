@@ -2,6 +2,10 @@
 // Sets the Supabase Auth config of one environment: site URL + redirect allow-list,
 // custom SMTP through Resend (sender "חד או פאן"), Hebrew email templates that
 // link to OUR /auth/confirm (works from any device), password rules.
+// NOTE: the wording of these templates is ALSO editable by the team in
+// /admin/content («מיילי אימות וסיסמה») – src/lib/auth-mail.ts pushes the same
+// shape through the Management API. Keep the defaults here and in
+// src/lib/content-registry.ts in step; running this script resets to these.
 import { supa, refFor, ENV } from "./deploy-helpers.mjs";
 
 const [env, siteUrlArg] = process.argv.slice(2);
