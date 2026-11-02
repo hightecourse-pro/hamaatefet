@@ -474,3 +474,24 @@ textarea.line {
 .rich h3 { margin: 16px 0 6px; font-size: 19px; font-weight: 700; color: var(--plum); }
 .rich-doc p { font-size: 17px; line-height: 1.7; margin: 0 0 10px; }
 [contenteditable].rich:focus { border-color: var(--crimson); box-shadow: 0 0 0 4px var(--focus-ring); }
+
+/* The floating team-message widget: the launch bubble's hand-drawn arrow */
+@keyframes bounce-arrow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.bounce-arrow { animation: bounce-arrow 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .bounce-arrow { animation: none; } }
+
+/* Thread rows in the forum list */
+.trow { transition: background 0.15s; }
+.trow:hover { background: #FBF1EA; }
+.trow:hover .trow-title { color: var(--crimson, #A3304A); }
+
+/* Section chips in the forum */
+.chip { transition: transform 0.15s, box-shadow 0.15s; }
+.chip:hover { transform: translateY(-2px); }
+
+/* Thread rows: the right-hand details only on wider screens */
+.trow-last { display: none; }
+@media (min-width: 720px) { .trow-last { display: flex; } }

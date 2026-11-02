@@ -30,13 +30,14 @@ export function emailGate(to: string): { ok: true; subjectPrefix: string } | { o
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
-export async function sendEmail(args: { to: string; subject: string; html: string }): Promise<SendResult> {
+export async function sendEmail(args: { to: string; subject: string; html: string; replyTo?: string }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, error: "email_not_configured" };
   const gate = emailGate(args.to);
   if (!gate.ok) return { ok: false, error: gate.error };
   const body: Record<string, unknown> = { from: FROM, to: [args.to], subject: gate.subjectPrefix + args.subject, html: args.html };
-  if (REPLY_TO) body.reply_to = REPLY_TO;
+  if (args.replyTo) body.reply_to = args.replyTo;
+  else if (REPLY_TO) body.reply_to = REPLY_TO;
   try {
     const post = () => fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: JSON.stringify(body) });
     let res = await post();
@@ -52,10 +53,10 @@ export async function sendEmail(args: { to: string; subject: string; html: strin
 }
 
 /** Send to several addresses, one request each, paced under Resend's 2 req/s. */
-export async function sendEmailToMany(to: string[], subject: string, html: string): Promise<SendResult[]> {
+export async function sendEmailToMany(to: string[], subject: string, html: string, replyTo?: string): Promise<SendResult[]> {
   const out: SendResult[] = [];
   for (const addr of to) {
-    out.push(await sendEmail({ to: addr, subject, html }));
+    out.push(await sendEmail({ to: addr, subject, html, replyTo }));
     await new Promise((r) => setTimeout(r, 550));
   }
   return out;
@@ -144,5 +145,17 @@ export function birthdayReminderEmail(c: Content, firstName: string, monthName: 
       cta: { label: c.get("email.reminder.cta"), url: `${siteUrl}/birthday` },
       footnote: `${esc(c.get("email.reminder.footnote", v))} <a href="${siteUrl}/profile" style="color:${C.crimson};">${esc(c.get("profile.title"))}</a>`,
     }),
+  };
+}
+
+/** A bug report / question / topic request from the floating widget or a forum section, to the team. */
+export function teamMessageEmail(c: Content, m: { kindLabel: string; name: string; subject: string; body: string; section: string; page: string }, inboxUrl: string): BuiltEmail {
+  const v = { סוג: m.kindLabel, שם: m.name, נושא: m.subject || m.body.slice(0, 60), מדור: m.section, מסך: m.page };
+  const paragraphs = [`<b>${esc(m.subject)}</b>`, esc(m.body).split("\n").join("<br>")];
+  if (m.section) paragraphs.push(esc(c.get("email.message.section", v)));
+  if (m.page) paragraphs.push(`<span style="font-size:14px;color:${C.muted};">${esc(c.get("email.message.page", v))}</span>`);
+  return {
+    subject: c.get("email.message.subject", v),
+    html: layoutEmail({ footer: c.get("email.footer"), title: c.get("email.message.title", v), intro: c.get("email.message.intro", v), paragraphs: paragraphs.filter(Boolean), cta: { label: c.get("email.message.cta"), url: inboxUrl } }),
   };
 }

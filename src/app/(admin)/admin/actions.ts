@@ -17,7 +17,7 @@ export interface AdminState {
   ok?: string | null;
 }
 
-const ALL_ADMIN = ["/admin", "/admin/forum", "/admin/millionaire", "/admin/birthday", "/admin/events"];
+const ALL_ADMIN = ["/admin", "/admin/forum", "/admin/inbox", "/admin/millionaire", "/admin/birthday", "/admin/events"];
 function revalidateAdmin(extra: string[] = []) {
   for (const p of [...ALL_ADMIN, ...extra]) revalidatePath(p);
 }
@@ -108,11 +108,13 @@ export async function addSection(_prev: AdminState, fd: FormData): Promise<Admin
   await requireAdmin();
   const name = String(fd.get("name") ?? "").trim();
   const description = String(fd.get("description") ?? "").trim();
+  const post_mode = String(fd.get("post_mode") ?? "team") === "members" ? "members" : "team";
+  const ask_label = String(fd.get("ask_label") ?? "").trim().slice(0, 60);
   if (!name) return { error: "שם המדור חסר." };
   const key = "s" + Date.now().toString(36);
   const admin = createAdminClient();
   const { count } = await admin.from("forum_sections").select("id", { count: "exact", head: true });
-  const { error } = await admin.from("forum_sections").insert({ key, name, description, sort_order: (count ?? 0) + 1, icon: "M4 6h16M4 12h16M4 18h10", color: "#4A1942", tint: "#F1E2EE" });
+  const { error } = await admin.from("forum_sections").insert({ key, name, description, post_mode, ask_label, sort_order: (count ?? 0) + 1, icon: "M4 6h16M4 12h16M4 18h10", color: "#4A1942", tint: "#F1E2EE" });
   if (error) return { error: "לא הצלחנו להוסיף." };
   revalidateAdmin(["/forum", "/home"]);
   return { error: null, ok: "המדור נוסף." };
@@ -123,8 +125,88 @@ export async function setPost(id: string, patch: { status?: "published" | "hidde
   const admin = createAdminClient();
   const { error } = await admin.from("posts").update(patch).eq("id", id);
   if (error) return { error: "לא הצלחנו לעדכן." };
-  revalidateAdmin(["/forum"]);
+  revalidateAdmin(["/forum", `/forum/${id}`]);
   return { error: null };
+}
+
+/** The team removes any thread (the owner, 2/11) – comments, likes and the image reference go with it. */
+export async function adminDeletePost(id: string): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("posts").delete().eq("id", id);
+  if (error) return { error: "לא הצלחנו למחוק." };
+  revalidateAdmin(["/forum"]);
+  return { error: null, ok: "הדיון נמחק." };
+}
+
+export async function adminDeleteComment(id: string): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("comments").delete().eq("id", id);
+  if (error) return { error: "לא הצלחנו למחוק." };
+  revalidateAdmin(["/forum"]);
+  return { error: null, ok: "התגובה נמחקה." };
+}
+
+/** Name, description, who may open threads, the "ask" button, the «חדש!» badge, order. */
+export async function updateSection(id: string, _prev: AdminState, fd: FormData): Promise<AdminState> {
+  await requireAdmin();
+  const name = String(fd.get("name") ?? "").trim();
+  const description = String(fd.get("description") ?? "").trim();
+  const post_mode = String(fd.get("post_mode") ?? "team") === "members" ? "members" : "team";
+  const ask_label = String(fd.get("ask_label") ?? "").trim().slice(0, 60);
+  const is_new = fd.get("is_new") === "on";
+  const visible = fd.get("visible") === "on";
+  const sort_order = Number(fd.get("sort_order") ?? 0) || 0;
+  if (!name) return { error: "שם המדור חסר." };
+  const admin = createAdminClient();
+  const { error } = await admin.from("forum_sections").update({ name, description, post_mode, ask_label, is_new, visible, sort_order }).eq("id", id);
+  if (error) return { error: "לא הצלחנו לשמור." };
+  revalidateAdmin(["/forum", "/home"]);
+  return { error: null, ok: "נשמר." };
+}
+
+/** Only an empty section can go – threads keep their section. */
+export async function deleteSection(id: string): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { count } = await admin.from("posts").select("id", { count: "exact", head: true }).eq("section_id", id);
+  if (count) return { error: `לא ניתן למחוק – יש במדור ${count} דיונים. אפשר להסתיר אותו.` };
+  const { error } = await admin.from("forum_sections").delete().eq("id", id);
+  if (error) return { error: "לא הצלחנו למחוק." };
+  revalidateAdmin(["/forum", "/home"]);
+  return { error: null, ok: "המדור נמחק." };
+}
+
+// ───────────────────────── team inbox ─────────────────────────
+
+export async function setMessageStatus(id: string, status: "new" | "handled"): Promise<AdminState> {
+  const { userId } = await requireAdmin();
+  const admin = createAdminClient();
+  const patch = status === "handled" ? { status, handled_at: new Date().toISOString(), handled_by: userId } : { status, handled_at: null, handled_by: null };
+  const { error } = await admin.from("team_messages").update(patch).eq("id", id);
+  if (error) return { error: "לא הצלחנו לעדכן." };
+  revalidateAdmin(["/admin/inbox"]);
+  return { error: null, ok: status === "handled" ? "סומן כטופל." : "הוחזר לפתוח." };
+}
+
+export async function deleteMessage(id: string): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("team_messages").delete().eq("id", id);
+  if (error) return { error: "לא הצלחנו למחוק." };
+  revalidateAdmin(["/admin/inbox"]);
+  return { error: null, ok: "נמחק." };
+}
+
+/** The launch bubble on the floating widget ("המעטפת בהרצה…") – on or off for everyone. */
+export async function setLaunchNudge(enabled: boolean): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("settings").upsert({ key: "launch_nudge", value: { enabled }, updated_at: new Date().toISOString() });
+  if (error) return { error: "לא הצלחנו לשמור." };
+  revalidatePath("/", "layout");
+  return { error: null, ok: enabled ? "הבועה מוצגת." : "הבועה כבויה." };
 }
 
 // ───────────────────────── millionaire ─────────────────────────

@@ -3,11 +3,16 @@ import { requireActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
-import { PostCard, type FeedPost, type FeedComment } from "./post-card";
-import { Composer } from "./composer";
+import { ThreadRow, type ThreadSummary } from "./thread-row";
+import { NewThreadBar } from "./new-thread-bar";
 
 export const metadata = { title: "הפורום" };
 
+/**
+ * The forum as a thread list (the owner, 2/11: "כמו הפורום בקוד פתוח"): section
+ * chips are entrances, «הכל» mixes every section; a row opens the whole
+ * conversation on its own page. Compact rows – many per screen.
+ */
 export default async function ForumPage({ searchParams }: { searchParams: Promise<{ section?: string; q?: string }> }) {
   const { userId, profile } = await requireActive();
   const isAdmin = profile.role === "admin";
@@ -19,80 +24,50 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
   const { data: sectionsRaw } = await supabase.from("forum_sections").select("*").eq("visible", true).order("sort_order");
   const sections = sectionsRaw ?? [];
   const current = sections.find((s) => s.key === sectionParam)?.key ?? "all";
+  const currentSection = sections.find((s) => s.key === current) ?? null;
 
-  let query = supabase.from("post_feed").select("*").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(60);
+  let query = supabase.from("post_feed").select("*").order("pinned", { ascending: false }).order("last_activity_at", { ascending: false }).limit(80);
   if (current !== "all") query = query.eq("section_key", current);
   if (q && q.trim()) {
     const term = q.trim().replace(/[%_,()]/g, " ");
     query = query.or(`title.ilike.%${term}%,body.ilike.%${term}%`);
   }
   const { data: postsRaw } = await query;
-  const posts = (postsRaw ?? []) as FeedPost[];
+  const posts = (postsRaw ?? []) as ThreadSummary[];
 
-  const ids = posts.map((p) => p.id);
-  const [{ data: commentsRaw }, signed] = await Promise.all([
-    ids.length ? supabase.from("comments").select("id, post_id, author_id, body, created_at").in("post_id", ids).order("created_at") : Promise.resolve({ data: [] as { id: string; post_id: string; author_id: string; body: string; created_at: string }[] }),
-    (async () => {
-      const paths = posts.map((p) => p.image_path).filter((p): p is string => !!p);
-      if (!paths.length) return new Map<string, string>();
-      const { data } = await supabase.storage.from("forum-images").createSignedUrls(paths, 3600);
-      return new Map((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path as string, d.signedUrl]));
-    })(),
-  ]);
-  const comments = commentsRaw ?? [];
-  const authorIds = Array.from(new Set(comments.map((x) => x.author_id)));
-  const { data: authors } = authorIds.length ? await supabase.from("member_directory").select("id, first_name, last_name").in("id", authorIds) : { data: [] };
-  const nameOf = new Map((authors ?? []).map((a) => [a.id, `${a.first_name} ${a.last_name}`.trim() || c.get("general.member_fallback")]));
-  const commentsByPost = new Map<string, FeedComment[]>();
-  for (const x of comments) {
-    const list = commentsByPost.get(x.post_id) ?? [];
-    list.push({ id: x.id, author_id: x.author_id, author_name: nameOf.get(x.author_id) ?? c.get("general.member_fallback"), body: x.body, created_at: x.created_at });
-    commentsByPost.set(x.post_id, list);
-  }
-
-  const feedTitle = current === "all" ? c.get("forum.feed.title") : (sections.find((s) => s.key === current)?.name ?? "");
+  const feedTitle = q ? c.get("forum.search.results", { חיפוש: q }) : current === "all" ? c.get("forum.feed.title") : (currentSection?.name ?? "");
   const tiles = [ALL, ...sections];
-  const copy = c.copy("forum.", "general.", "editor.");
+  const copy = c.copy("forum.", "general.", "editor.", "widget.sending");
 
   return (
     <MemberFrame profile={profile} current="forum">
       <section style={{ background: "#4A1942", color: "#FBE3D6", position: "relative", overflow: "hidden" }}>
-        <div aria-hidden="true" style={{ position: "absolute", top: 30, left: "8%", width: 22, height: 22, borderRadius: "50%", background: "#F0A35E" }} />
-        <div aria-hidden="true" style={{ position: "absolute", bottom: 30, left: "30%", width: 14, height: 14, borderRadius: 4, background: "#E07A8F", transform: "rotate(30deg)" }} />
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 56px", display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 24, position: "relative" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span className="hand" style={{ fontSize: 20, color: "#F6C9A6" }}>
+        <div aria-hidden="true" style={{ position: "absolute", top: 18, left: "8%", width: 18, height: 18, borderRadius: "50%", background: "#F0A35E" }} />
+        <div aria-hidden="true" style={{ position: "absolute", bottom: 18, left: "30%", width: 12, height: 12, borderRadius: 4, background: "#E07A8F", transform: "rotate(30deg)" }} />
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 36px", display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16, position: "relative" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span className="hand" style={{ fontSize: 18, color: "#F6C9A6" }}>
               {c.get("forum.tagline")}
             </span>
-            <h1 style={{ margin: 0, fontSize: "clamp(48px, 7vw, 76px)", fontWeight: 700, lineHeight: 1, color: "#FFFFFF" }}>{c.get("forum.title")}</h1>
-            <p style={{ margin: "6px 0 0", fontSize: 19, maxWidth: 520, lineHeight: 1.55, whiteSpace: "pre-line" }}>{c.get("forum.intro")}</p>
+            <h1 style={{ margin: 0, fontSize: "clamp(36px, 5vw, 52px)", fontWeight: 700, lineHeight: 1, color: "#FFFFFF" }}>{c.get("forum.title")}</h1>
+            <p style={{ margin: "4px 0 0", fontSize: 16, maxWidth: 560, lineHeight: 1.5, whiteSpace: "pre-line" }}>{c.get("forum.intro")}</p>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <form action="/forum" method="get" style={{ position: "relative", display: "block" }}>
-              {current !== "all" && <input type="hidden" name="section" value={current} />}
-              <label>
-                <span className="sr-only">{c.get("forum.search")}</span>
-                <input type="search" name="q" defaultValue={q ?? ""} placeholder={c.get("forum.search")} style={{ width: 260, height: 52, boxSizing: "border-box", borderRadius: 999, border: "none", padding: "0 48px 0 18px", fontSize: 17, background: "#FFF3EA", color: "#3A1530" }} />
-              </label>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A5566" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ position: "absolute", right: 18, top: 16 }}>
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
-            </form>
-            {isAdmin && (
-              <a href="#composer" style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 52, padding: "0 22px", borderRadius: 999, background: "#F0A35E", color: "#3A1530", fontSize: 18, fontWeight: 700, textDecoration: "none", boxShadow: "4px 4px 0 #2A0C25" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                {c.get("forum.new")}
-              </a>
-            )}
-          </div>
+          <form action="/forum" method="get" style={{ position: "relative", display: "block" }}>
+            {current !== "all" && <input type="hidden" name="section" value={current} />}
+            <label>
+              <span className="sr-only">{c.get("forum.search")}</span>
+              <input type="search" name="q" defaultValue={q ?? ""} placeholder={c.get("forum.search")} style={{ width: 250, height: 46, boxSizing: "border-box", borderRadius: 999, border: "none", padding: "0 44px 0 16px", fontSize: 16, background: "#FFF3EA", color: "#3A1530" }} />
+            </label>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A5566" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ position: "absolute", right: 16, top: 14 }}>
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+          </form>
         </div>
       </section>
 
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 72px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginTop: -28, position: "relative" }}>
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 56px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <nav aria-label={c.get("forum.title")} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: -22, position: "relative" }}>
           {tiles.map((s) => {
             const on = s.key === current;
             const href = s.key === "all" ? "/forum" : `/forum?section=${s.key}`;
@@ -100,68 +75,63 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
               <Link
                 key={s.key}
                 href={href}
-                className="sec"
-                aria-pressed={on}
-                style={{ flex: "1 1 200px", position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, textAlign: "right", padding: 20, borderRadius: 24, cursor: "pointer", color: "#3A1530", textDecoration: "none", background: "#FFFFFF", border: on ? `3px solid ${s.color}` : "2px solid #F0E2D8", boxShadow: on ? `6px 6px 0 ${s.color}` : "4px 4px 0 #EBD4C8" }}
+                className="chip"
+                aria-current={on ? "page" : undefined}
+                title={s.description}
+                style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 8, height: 44, padding: "0 16px 0 14px", borderRadius: 999, textDecoration: "none", fontSize: 15, fontWeight: 600, background: on ? s.color : "#FFFFFF", color: on ? "#FFF3EA" : "#3A1530", border: on ? `2px solid ${s.color}` : "2px solid #F0E2D8", boxShadow: on ? `3px 3px 0 ${s.tint}` : "3px 3px 0 #F3E6DD" }}
               >
-                {s.is_new && (
-                  <span className="hand" style={{ position: "absolute", top: -12, left: 14, background: "#F0A35E", color: "#3A1530", fontSize: 14, fontWeight: 600, padding: "3px 12px", borderRadius: 999, transform: "rotate(-8deg)" }}>
-                    {c.get("forum.new_badge")}
-                  </span>
-                )}
-                <span style={{ width: 48, height: 48, borderRadius: 16, background: s.tint, display: "flex", alignItems: "center", justifyContent: "center", color: s.color }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <span style={{ width: 26, height: 26, borderRadius: 9, background: on ? "rgba(255,255,255,0.18)" : s.tint, display: "flex", alignItems: "center", justifyContent: "center", color: on ? "#FFF3EA" : s.color }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={s.icon} />
                   </svg>
                 </span>
-                <span style={{ fontSize: 20, fontWeight: 700 }}>{s.name}</span>
-                <span style={{ fontSize: 15, lineHeight: 1.45, color: "#6A4558" }}>{s.description}</span>
+                {s.name}
+                {s.is_new && (
+                  <span className="hand" style={{ position: "absolute", top: -11, left: 10, background: "#F0A35E", color: "#3A1530", fontSize: 12, fontWeight: 600, padding: "1px 8px", borderRadius: 999, transform: "rotate(-8deg)" }}>
+                    {c.get("forum.new_badge")}
+                  </span>
+                )}
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 32, marginTop: 48, alignItems: "flex-start" }}>
-          <div style={{ flex: "999 1 560px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <h2 style={{ margin: 0, fontSize: 30, fontWeight: 700 }}>
-                <span className="grad">{q ? c.get("forum.search.results", { חיפוש: q }) : feedTitle}</span>
-              </h2>
-              <span className="hand" style={{ fontSize: 17, color: "#7A5566" }}>
-                {c.get("forum.feed.note")}
-              </span>
-            </div>
-            {posts.length === 0 && (
-              <div className="surface" style={{ textAlign: "center", padding: 36, color: "#6A4558", fontSize: 17 }}>
-                {q ? c.get("forum.search.empty") : c.get("forum.empty")}
-              </div>
-            )}
-            {posts.map((p) => (
-              <PostCard key={p.id} post={p} comments={commentsByPost.get(p.id) ?? []} imageUrl={p.image_path ? (signed.get(p.image_path) ?? null) : null} userId={userId} copy={copy} />
+        {currentSection && (
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "#5A3348" }}>
+            <b>{currentSection.description}</b> {currentSection.post_mode === "members" ? c.get("forum.mode.members") : c.get("forum.mode.team")}
+          </p>
+        )}
+
+        <NewThreadBar sections={sections.map((s) => ({ id: s.id, key: s.key, name: s.name, post_mode: s.post_mode, ask_label: s.ask_label }))} current={current} isAdmin={isAdmin} userId={userId} copy={copy} />
+
+        <section aria-labelledby="feed" style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 22, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, padding: "14px 16px 10px" }}>
+            <h2 id="feed" style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>
+              <span className="grad">{feedTitle}</span>
+            </h2>
+            <span className="hand" style={{ fontSize: 15, color: "#7A5566" }}>
+              {c.get("forum.feed.note")}
+            </span>
+          </div>
+          {posts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "28px 16px 32px", color: "#6A4558", fontSize: 16, borderTop: "1px solid #F3E6DD" }}>{q ? c.get("forum.search.empty") : c.get("forum.empty")}</div>
+          ) : (
+            posts.map((p) => <ThreadRow key={p.id} p={p} c={c} />)
+          )}
+        </section>
+
+        <details style={{ background: "#FFFFFF", border: "2px dashed #E2C8BB", borderRadius: 18, padding: "10px 18px" }}>
+          <summary className="hand" style={{ cursor: "pointer", fontSize: 19, color: "#A3304A", listStyle: "none" }}>
+            {c.get("forum.rules.toggle")}
+          </summary>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0 4px" }}>
+            {c.lines("forum.rules").map((line, i) => (
+              <p key={i} style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>
+                {line}
+              </p>
             ))}
           </div>
-
-          <aside style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 24 }}>
-            {isAdmin ? (
-              <Composer sections={sections.map((s) => ({ key: s.key, name: s.name }))} userId={userId} copy={copy} />
-            ) : (
-              <section style={{ background: "#FBF1EA", border: "2px solid #EAD3C6", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 10, boxShadow: "6px 6px 0 #4A1942", transform: "rotate(1deg)" }}>
-                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{c.get("forum.member.title")}</h2>
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{c.get("forum.member.text")}</p>
-              </section>
-            )}
-            <section style={{ background: "#FFFFFF", border: "2px dashed #E2C8BB", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
-              <h2 className="hand" style={{ margin: 0, fontSize: 22, color: "#A3304A" }}>
-                {c.get("forum.rules.title")}
-              </h2>
-              {c.lines("forum.rules").map((line, i) => (
-                <p key={i} style={{ margin: 0, fontSize: 16, lineHeight: 1.6 }}>
-                  {line}
-                </p>
-              ))}
-            </section>
-          </aside>
-        </div>
+        </details>
       </main>
     </MemberFrame>
   );

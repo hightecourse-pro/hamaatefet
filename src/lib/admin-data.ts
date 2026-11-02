@@ -6,6 +6,7 @@ export interface AdminCounts {
   pendingMembers: number;
   commentsWeek: number;
   newProposals: number;
+  newMessages: number;
   nextEventTitle: string | null;
   nextEventRegistrations: number;
 }
@@ -14,11 +15,12 @@ export interface AdminCounts {
 export async function adminCounts(): Promise<AdminCounts> {
   const admin = createAdminClient();
   const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-  const [active, pending, comments, proposals, next] = await Promise.all([
+  const [active, pending, comments, proposals, messages, next] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("comments").select("id", { count: "exact", head: true }).gte("created_at", since),
     admin.from("hosting_proposals").select("id", { count: "exact", head: true }).eq("status", "new"),
+    admin.from("team_messages").select("id", { count: "exact", head: true }).eq("status", "new"),
     admin.from("events").select("id, title").eq("published", true).gte("event_date", todayIso()).order("event_date").limit(1).maybeSingle(),
   ]);
   let nextEventRegistrations = 0;
@@ -31,6 +33,7 @@ export async function adminCounts(): Promise<AdminCounts> {
     pendingMembers: pending.count ?? 0,
     commentsWeek: comments.count ?? 0,
     newProposals: proposals.count ?? 0,
+    newMessages: messages.count ?? 0,
     nextEventTitle: next.data?.title ?? null,
     nextEventRegistrations,
   };

@@ -15,8 +15,19 @@ export function NewSectionForm() {
   }
   return (
     <form action={action} style={{ display: "flex", flexDirection: "column", gap: 8, background: "#FFFCFA", border: "1.5px dashed #C9A3B0", borderRadius: 16, padding: 12 }}>
-      <input className="fld fld-sm" name="name" placeholder="שם המדור" required />
-      <input className="fld fld-sm" name="description" placeholder="משפט קצר שמסביר מה יש בו" />
+      <input className="fld fld-sm" name="name" placeholder="שם המדור" required maxLength={40} />
+      <input className="fld fld-sm" name="description" placeholder="משפט קצר שמסביר מה יש בו" maxLength={120} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input type="radio" name="post_mode" value="team" defaultChecked style={{ accentColor: "#6E0F1A" }} />
+          רק הצוות פותח דיונים (החברות שולחות בקשה לנושא)
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input type="radio" name="post_mode" value="members" style={{ accentColor: "#6E0F1A" }} />
+          כולן פותחות דיונים
+        </label>
+      </div>
+      <input className="fld fld-sm" name="ask_label" placeholder="כפתור «שאלה ל…» (לא חובה), למשל: שאלה לרוחמה" maxLength={60} />
       {state.error && (
         <span role="alert" style={{ fontSize: 14, color: "#A3304A" }}>
           {state.error}

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { key: "members", href: "/admin", label: "משתתפות", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" },
   { key: "forum", href: "/admin/forum", label: "הפורום", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
+  { key: "inbox", href: "/admin/inbox", label: "פניות", icon: "M22 12h-6l-2 3h-4l-2-3H2M5 5h14l3 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7z" },
   { key: "mill", href: "/admin/millionaire", label: "המיליונרית", icon: "M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" },
   { key: "bday", href: "/admin/birthday", label: "חוגגות חודש טוב", icon: "M4 21h16M5 21V12h14v9M12 12V8M12 5a1 1 0 0 0 0-2M8 12V9M16 12V9" },
   { key: "events", href: "/admin/events", label: "מפגשים והרשמות", icon: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM16 3v4M8 3v4M3 11h18" },

@@ -9,13 +9,17 @@ import { getContent } from "@/lib/content";
 export interface ForumState {
   error: string | null;
   ok?: boolean;
+  /** The new thread, so the composer can send her there. */
+  postId?: string;
 }
 
-/** Only the team opens discussions (the owner, 14/10). RLS enforces the same. */
+/**
+ * Opens a thread. The team may post in every section; a member only in a
+ * section whose post_mode is "members" (the owner, 2/11). RLS enforces the same.
+ */
 export async function createPost(_prev: ForumState, fd: FormData): Promise<ForumState> {
   const { userId, profile } = await requireActive();
   const c = await getContent();
-  if (profile.role !== "admin") return { error: c.get("forum.err.team_only") };
   const section = String(fd.get("section") ?? "");
   const title = String(fd.get("title") ?? "").trim();
   const body = sanitizeRich(String(fd.get("body") ?? ""));
@@ -27,22 +31,27 @@ export async function createPost(_prev: ForumState, fd: FormData): Promise<Forum
 
   const [key, helpKind] = section.split(":");
   const supabase = await createClient();
-  const { data: sec } = await supabase.from("forum_sections").select("id").eq("key", key).maybeSingle();
+  const { data: sec } = await supabase.from("forum_sections").select("id, post_mode").eq("key", key).maybeSingle();
   if (!sec) return { error: c.get("forum.err.section") };
+  if (profile.role !== "admin" && sec.post_mode !== "members") return { error: c.get("forum.err.section_closed") };
   if (imagePath && !imagePath.startsWith(`${userId}/`)) return { error: c.get("forum.err.image") };
 
-  const { error } = await supabase.from("posts").insert({
-    section_id: sec.id,
-    author_id: userId,
-    title,
-    body,
-    image_path: imagePath,
-    help_kind: key === "help" && (helpKind === "asking" || helpKind === "offering") ? helpKind : null,
-  });
+  const { data: created, error } = await supabase
+    .from("posts")
+    .insert({
+      section_id: sec.id,
+      author_id: userId,
+      title,
+      body,
+      image_path: imagePath,
+      help_kind: key === "help" && (helpKind === "asking" || helpKind === "offering") ? helpKind : null,
+    })
+    .select("id")
+    .single();
   if (error) return { error: c.get("forum.err.publish") };
   revalidatePath("/forum");
   revalidatePath("/admin/forum");
-  return { error: null, ok: true };
+  return { error: null, ok: true, postId: created.id };
 }
 
 export async function toggleLike(postId: string): Promise<{ error: string | null }> {
@@ -54,6 +63,7 @@ export async function toggleLike(postId: string): Promise<{ error: string | null
     : await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
   if (error) return { error: (await getContent()).get("forum.err.like") };
   revalidatePath("/forum");
+  revalidatePath(`/forum/${postId}`);
   return { error: null };
 }
 
@@ -68,23 +78,28 @@ export async function addComment(postId: string, bodyHtml: string): Promise<{ er
   const { error } = await supabase.from("comments").insert({ post_id: postId, author_id: userId, body });
   if (error) return { error: c.get("forum.err.comment_save") };
   revalidatePath("/forum");
+  revalidatePath(`/forum/${postId}`);
   return { error: null };
 }
 
-export async function deleteOwnPost(postId: string): Promise<{ error: string | null }> {
-  const { userId } = await requireActive();
+/** Her own thread – or any thread, for the team (RLS: author or admin). */
+export async function deletePost(postId: string): Promise<{ error: string | null }> {
+  await requireActive();
   const supabase = await createClient();
-  const { error } = await supabase.from("posts").delete().eq("id", postId).eq("author_id", userId);
-  if (error) return { error: (await getContent()).get("forum.err.delete") };
+  const { error, count } = await supabase.from("posts").delete({ count: "exact" }).eq("id", postId);
+  if (error || !count) return { error: (await getContent()).get("forum.err.delete") };
   revalidatePath("/forum");
+  revalidatePath("/admin/forum");
   return { error: null };
 }
 
-export async function deleteOwnComment(commentId: string): Promise<{ error: string | null }> {
-  const { userId } = await requireActive();
+/** Her own comment – or any comment, for the team (RLS: author or admin). */
+export async function deleteComment(commentId: string, postId: string): Promise<{ error: string | null }> {
+  await requireActive();
   const supabase = await createClient();
-  const { error } = await supabase.from("comments").delete().eq("id", commentId).eq("author_id", userId);
-  if (error) return { error: (await getContent()).get("forum.err.delete") };
+  const { error, count } = await supabase.from("comments").delete({ count: "exact" }).eq("id", commentId);
+  if (error || !count) return { error: (await getContent()).get("forum.err.delete") };
   revalidatePath("/forum");
+  revalidatePath(`/forum/${postId}`);
   return { error: null };
 }

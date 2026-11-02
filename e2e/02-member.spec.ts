@@ -19,33 +19,71 @@ test.describe("member flows", () => {
     await expect(band.getByRole("button", { name: "אני באה!" })).toBeVisible();
   });
 
-  test("forum: a member cannot open a discussion, but likes and comments with emoji", async ({ page }) => {
+  test("forum: thread list, open a thread, like and comment with emoji, search and section filter", async ({ page }) => {
     await page.goto("/forum");
     await expect(page.getByRole("heading", { name: "הפורום", level: 1 })).toBeVisible();
     for (const s of ["תכנים", "מאחורי הקלעים", "עזרה הדדית", "דיונים קבוצתיים"]) await expect(page.getByRole("link", { name: new RegExp(s) }).first()).toBeVisible();
     await expect(page.locator("#composer")).toHaveCount(0);
-    await expect(page.getByText("איך זה עובד כאן?")).toBeVisible();
 
-    const card = page.locator("article", { hasText: "QA דיון פתוח" });
-    await expect(card).toBeVisible();
-    await expect(card.locator("strong", { hasText: "מודגש" })).toBeVisible();
+    const row = page.locator("a.trow", { hasText: "QA דיון פתוח" });
+    await expect(row).toBeVisible();
+    await row.click();
+    await expect(page).toHaveURL(/\/forum\/[0-9a-f-]+/);
+    await expect(page.getByRole("heading", { name: "QA דיון פתוח", level: 1 })).toBeVisible();
+    await expect(page.locator("article strong", { hasText: "מודגש" })).toBeVisible();
 
-    await card.getByRole("button", { name: /אהבתי/ }).click();
-    await expect(card.getByRole("button", { name: /אהבתי · 1/ })).toBeVisible();
+    await page.getByRole("button", { name: /אהבתי/ }).click();
+    await expect(page.getByRole("button", { name: /אהבתי · 1/ })).toBeVisible();
 
-    await card.getByRole("button", { name: /להצטרף לדיון/ }).click();
-    const editor = card.locator('[data-rich-editor="comment"]');
+    const editor = page.locator('[data-rich-editor="comment"]');
     await editor.click();
     await page.keyboard.type("תגובה אוטומטית ");
-    await card.getByRole("button", { name: "אימוג׳י" }).click();
-    await card.getByRole("dialog", { name: "בחירת אימוג׳י" }).getByRole("button", { name: "🎉" }).click();
-    await card.getByRole("button", { name: "שולחת" }).click();
-    await expect(card.getByText("תגובה אוטומטית 🎉")).toBeVisible();
+    await page.getByRole("button", { name: "אימוג׳י" }).click();
+    await page.getByRole("dialog", { name: "בחירת אימוג׳י" }).getByRole("button", { name: "🎉" }).click();
+    await page.getByRole("button", { name: "שולחת" }).click();
+    await expect(page.getByText("תגובה אוטומטית 🎉")).toBeVisible();
+    await expect(page.getByText("את", { exact: true })).toBeVisible();
 
+    await page.getByRole("link", { name: /לכל הדיונים/ }).click();
+    await expect(page.locator("a.trow", { hasText: "QA דיון פתוח" })).toContainText("1");
     await page.goto(`/forum?q=${encodeURIComponent("QA דיון פתוח")}`);
-    await expect(page.locator("article", { hasText: "QA דיון פתוח" })).toBeVisible();
+    await expect(page.locator("a.trow", { hasText: "QA דיון פתוח" })).toBeVisible();
     await page.goto("/forum?section=content");
-    await expect(page.locator("article", { hasText: "QA דיון פתוח" })).toHaveCount(0);
+    await expect(page.locator("a.trow", { hasText: "QA דיון פתוח" })).toHaveCount(0);
+  });
+
+  test("forum: a team-only section offers a topic request; an open section lets her open a thread", async ({ page }) => {
+    await page.goto("/forum?section=talk");
+    await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await page.getByRole("button", { name: "בקשה לנושא" }).click();
+    await page.fill('input[name="subject"]', "QA נושא מבוקש");
+    await page.fill('textarea[name="body"]', "אשמח לדיון על זה.");
+    await page.getByRole("button", { name: "שולחת לצוות" }).click();
+    await expect(page.getByRole("status")).toContainText("הבקשה הגיעה לצוות");
+
+    await page.goto("/forum?section=help");
+    await page.getByRole("button", { name: "דיון חדש" }).click();
+    const composer = page.locator("#composer");
+    await expect(composer).toBeVisible();
+    await composer.locator('input[name="title"]').fill("QA דיון של חברה");
+    await composer.locator('[data-rich-editor="body"]').click();
+    await page.keyboard.type("מישהי יכולה לעזור לי עם זה?");
+    await composer.getByRole("button", { name: "שולחת לפורום" }).click();
+    await expect(page).toHaveURL(/\/forum\/[0-9a-f-]+/);
+    await expect(page.getByRole("heading", { name: /QA דיון של חברה/, level: 1 })).toBeVisible();
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: "מחיקה" }).first().click();
+    await expect(page).toHaveURL(/\/forum$/);
+  });
+
+  test("the floating button sends a bug report to the team", async ({ page }) => {
+    await page.goto("/home");
+    await expect(page.getByText("המעטפת בהרצה")).toBeVisible();
+    await page.getByRole("button", { name: "יש לך משהו לספר לנו?" }).click();
+    await page.fill('input[name="subject"]', "QA תקלה");
+    await page.fill('textarea[name="body"]', "הכפתור לא עובד אצלי.");
+    await page.getByRole("button", { name: "שולחת לצוות" }).click();
+    await expect(page.getByRole("status")).toContainText("קיבלנו");
   });
 
   test("millionaire: hero, hosting RSVP, cheque proposal", async ({ page }) => {

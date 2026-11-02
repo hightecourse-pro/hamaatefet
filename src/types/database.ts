@@ -218,6 +218,7 @@ export type Database = {
       }
       forum_sections: {
         Row: {
+          ask_label: string
           color: string
           created_at: string
           description: string
@@ -226,11 +227,13 @@ export type Database = {
           is_new: boolean
           key: string
           name: string
+          post_mode: string
           sort_order: number
           tint: string
           visible: boolean
         }
         Insert: {
+          ask_label?: string
           color?: string
           created_at?: string
           description?: string
@@ -239,11 +242,13 @@ export type Database = {
           is_new?: boolean
           key: string
           name: string
+          post_mode?: string
           sort_order?: number
           tint?: string
           visible?: boolean
         }
         Update: {
+          ask_label?: string
           color?: string
           created_at?: string
           description?: string
@@ -252,6 +257,7 @@ export type Database = {
           is_new?: boolean
           key?: string
           name?: string
+          post_mode?: string
           sort_order?: number
           tint?: string
           visible?: boolean
@@ -563,6 +569,70 @@ export type Database = {
         }
         Relationships: []
       }
+      team_messages: {
+        Row: {
+          body: string
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          page: string
+          section_id: string | null
+          status: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          page?: string
+          section_id?: string | null
+          status?: string
+          subject?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["message_kind"]
+          page?: string
+          section_id?: string | null
+          status?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "forum_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topic_team: {
         Row: {
           created_at: string
@@ -643,6 +713,7 @@ export type Database = {
           help_kind: Database["public"]["Enums"]["help_kind"] | null
           id: string | null
           image_path: string | null
+          last_activity_at: string | null
           like_count: number | null
           liked_by_me: boolean | null
           pinned: boolean | null
@@ -650,6 +721,7 @@ export type Database = {
           section_id: string | null
           section_key: string | null
           section_name: string | null
+          section_post_mode: string | null
           section_tint: string | null
           status: Database["public"]["Enums"]["post_status"] | null
           title: string | null
@@ -691,6 +763,7 @@ export type Database = {
       help_kind: "asking" | "offering"
       member_role: "member" | "admin"
       member_status: "pending" | "active" | "paused"
+      message_kind: "bug" | "question" | "topic"
       post_status: "pending" | "published" | "hidden"
       proposal_kind: "talent" | "insight" | "story" | "other"
       proposal_status: "new" | "scheduled" | "declined"

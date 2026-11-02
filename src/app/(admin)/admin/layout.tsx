@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </header>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start" }}>
-        <AdminNav badges={{ members: counts.pendingMembers, mill: counts.newProposals }} />
+        <AdminNav badges={{ members: counts.pendingMembers, mill: counts.newProposals, inbox: counts.newMessages }} />
         <main style={{ flex: "999 1 640px", minWidth: 0, padding: "28px clamp(16px, 3vw, 40px) 56px", display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
             <div style={{ ...TILE, background: "#FFFFFF", border: "2px solid #F0E2D8" }}>
