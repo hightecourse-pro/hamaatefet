@@ -97,20 +97,20 @@ test.describe("admin", () => {
     await expect(card.getByText("12:30")).toBeVisible();
     const sw = card.getByRole("checkbox", { name: "הסיכום היומי פעיל" });
     await expect(sw).toBeChecked();
-    await sw.uncheck();
+    await Promise.all([page.waitForResponse((r) => r.request().method() === "POST" && r.ok()), sw.uncheck()]);
     await page.reload();
     await expect(card.getByRole("checkbox", { name: "הסיכום היומי פעיל" })).not.toBeChecked();
-    await card.getByRole("checkbox", { name: "הסיכום היומי פעיל" }).check();
+    await Promise.all([page.waitForResponse((r) => r.request().method() === "POST" && r.ok()), card.getByRole("checkbox", { name: "הסיכום היומי פעיל" }).check()]);
     await page.reload();
     await expect(card.getByRole("checkbox", { name: "הסיכום היומי פעיל" })).toBeChecked();
     // On staging the admin address is outside the allowlist, so the sample is blocked; the button still reports honestly.
     await card.getByRole("button", { name: /שליחת דוגמה אליי/ }).click();
-    await expect(card.getByText(/נשלח/)).toBeVisible({ timeout: 20_000 });
+    await expect(card.getByText(/^(נשלחה דוגמה|לא נשלח)/)).toBeVisible({ timeout: 20_000 });
   });
 
   test("ads: upload one, see it in the list, hide it, delete it", async ({ page }) => {
     await page.goto("/admin/ads");
-    await expect(page.getByRole("heading", { name: "פרסומות" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "פרסומות", exact: true })).toBeVisible();
     await expect(page.getByText("300 פיקסלים").first()).toBeVisible();
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
     await page.locator('input[name="name"]').fill("QA פרסומת 2");
@@ -122,7 +122,7 @@ test.describe("admin", () => {
     await expect(row).toBeVisible();
     await expect(row.getByRole("img", { name: "QA פרסומת 2" })).toBeVisible();
     await expect(row.getByText("0 לחיצות")).toBeVisible();
-    await row.getByRole("checkbox", { name: "מוצגת לחברות" }).uncheck();
+    await Promise.all([page.waitForResponse((r) => r.request().method() === "POST" && r.ok()), row.getByRole("checkbox", { name: "מוצגת לחברות" }).uncheck()]);
     await page.reload();
     await expect(page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת 2" }).getByRole("checkbox", { name: "מוצגת לחברות" })).not.toBeChecked();
     page.once("dialog", (d) => d.accept());
