@@ -5,7 +5,8 @@ import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
 import { lines as splitLines } from "@/lib/copy";
 import { ThreadRow, type ThreadSummary } from "./thread-row";
-import { NewThreadBar, asAction } from "./new-thread-bar";
+import { NewThreadBar } from "./new-thread-bar";
+import { asAction } from "@/lib/sections";
 
 /** The one-line explanation under a section's description, by what members do there. */
 const MODE_TEXT: Record<string, string> = { thread: "forum.mode.members", help_ask: "forum.mode.members", question: "forum.mode.question", request: "forum.mode.team", none: "forum.mode.none" };

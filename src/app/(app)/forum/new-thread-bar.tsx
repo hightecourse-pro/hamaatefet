@@ -6,10 +6,7 @@ import { Composer, SectionInfo } from "./composer";
 import { sendTeamMessage, type MessageState } from "@/app/(app)/messages/actions";
 import { tx, type Copy } from "@/lib/copy";
 
-/** What a member does in a section – one button only (the owner, 2/11 night). */
-export type MemberAction = "thread" | "help_ask" | "question" | "request" | "none";
-const ACTIONS: MemberAction[] = ["thread", "help_ask", "question", "request", "none"];
-export const asAction = (v: string): MemberAction => (ACTIONS.includes(v as MemberAction) ? (v as MemberAction) : "request");
+import type { MemberAction } from "@/lib/sections";
 
 export interface SectionLite {
   id: string;
