@@ -10,7 +10,7 @@ test.describe("public + gating", () => {
     await expect(page.getByText("מוזמנת!")).toBeVisible();
     // Sponsor logos, outside too.
     await expect(page.getByAltText("מינהל קהילתי בית וגן")).toBeVisible();
-    await expect(page.getByAltText("חד או פאן")).toBeVisible();
+    await expect(page.getByAltText("חד או פאן", { exact: true })).toBeVisible();
   });
 
   test("sign-up tab asks for the first-entry details", async ({ page }) => {
