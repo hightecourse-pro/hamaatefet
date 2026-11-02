@@ -6,6 +6,7 @@ import { contentFrom, type Content } from "@/lib/content";
 import { digestEmail, sendEmail, sendEmailBatch, type DigestData } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site";
 import { civilDateLabel, hebrewDateLabel, timeRange } from "@/lib/hebrew";
+import { HDate, HebrewCalendar, flags } from "@hebcal/core";
 
 /** When the digest goes out (Israel time). vercel.json fires the route every hour at :30; only the 12:30 firing sends. */
 export const DIGEST_HOUR = 12;
@@ -24,6 +25,19 @@ export function israelNow(now: Date = new Date()): { hour: number; minute: numbe
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", hourCycle: "h23", hour: "2-digit", minute: "2-digit", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
   const g = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? "";
   return { hour: Number(g("hour")), minute: Number(g("minute")), date: `${g("year")}-${g("month")}-${g("day")}` };
+}
+
+/**
+ * Shabbat and yom tov by the Israel calendar (Rosh Hashana ×2, Yom Kippur,
+ * Sukkot I, Shmini Atzeret, Pesach I + VII, Shavuot): no digest that day; the
+ * next run covers the gap. Returns the reason, or null on an ordinary day.
+ */
+export function restDay(date: string): string | null {
+  const [y, m, d] = date.split("-").map(Number);
+  const civil = new Date(y, m - 1, d, 12);
+  if (civil.getDay() === 6) return "shabbat";
+  const chag = (HebrewCalendar.getHolidaysOnDate(new HDate(civil), true) ?? []).find((e) => (e.getFlags() & flags.CHAG) !== 0);
+  return chag ? chag.getDesc() : null;
 }
 
 /** New threads, threads that got comments, and new calendar entries between two instants. */
@@ -70,10 +84,10 @@ export interface DigestRun {
   errors?: string[];
 }
 
-/** The scheduled run. `force` skips the hour + once-a-day guards; `dry` counts without sending or recording. */
-export async function runDailyDigest(opts: { force?: boolean; dry?: boolean } = {}): Promise<DigestRun> {
+/** The scheduled run. `force` skips the rest-day, hour and once-a-day guards; `dry` counts without sending or recording (and may evaluate another instant via `now`). */
+export async function runDailyDigest(opts: { force?: boolean; dry?: boolean; now?: Date } = {}): Promise<DigestRun> {
   const admin = createAdminClient();
-  const now = new Date();
+  const now = opts.now ?? new Date();
   const until = now.toISOString();
   const [c, { data: rows }] = await Promise.all([adminContent(admin), admin.from("settings").select("key, value").in("key", ["digest", "digest_last"])]);
   const setting: Record<string, Record<string, unknown>> = {};
@@ -88,6 +102,8 @@ export async function runDailyDigest(opts: { force?: boolean; dry?: boolean } = 
   if (!enabled && !opts.force) return { ...base, skipped: "disabled" };
   if (!opts.force) {
     const il = israelNow(now);
+    const rest = restDay(il.date);
+    if (rest) return { ...base, skipped: `rest_day (${rest}, ${il.date})` };
     if (il.hour !== DIGEST_HOUR) return { ...base, skipped: `not_the_hour (${il.hour}:${String(il.minute).padStart(2, "0")} Israel)` };
     if (lastAt && now.getTime() - new Date(lastAt).getTime() < 20 * 3600 * 1000) return { ...base, skipped: "already_ran_today" };
   }
