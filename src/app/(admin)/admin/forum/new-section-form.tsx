@@ -28,6 +28,7 @@ export function NewSectionForm() {
         </label>
       </div>
       <input className="fld fld-sm" name="ask_label" placeholder="כפתור «שאלה ל…» (לא חובה), למשל: שאלה לרוחמה" maxLength={60} />
+      <textarea className="fld fld-sm" name="rules" rows={3} maxLength={2000} style={{ minHeight: 72, lineHeight: 1.5 }} placeholder="כללי הבית של המדור (לא חובה) – שורה לכל כלל" />
       {state.error && (
         <span role="alert" style={{ fontSize: 14, color: "#A3304A" }}>
           {state.error}

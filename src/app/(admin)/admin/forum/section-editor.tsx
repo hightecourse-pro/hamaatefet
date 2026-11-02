@@ -11,6 +11,7 @@ export interface SectionRow {
   description: string;
   post_mode: string;
   ask_label: string;
+  rules: string;
   is_new: boolean;
   visible: boolean;
   sort_order: number;
@@ -85,6 +86,10 @@ export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: numb
             כפתור «שאלה ל…» במדור (ריק = אין כפתור)
             <input className="fld fld-sm" name="ask_label" defaultValue={s.ask_label} maxLength={60} placeholder="למשל: שאלה לרוחמה" />
             <span style={{ fontSize: 13, fontWeight: 400, color: "#7A5566" }}>השאלה מגיעה לתיבת הפניות ולמייל של הצוות, עם כתובת המייל של השואלת למענה ישיר.</span>
+          </label>
+          <label style={LABEL}>
+            כללי הבית של המדור / על אופי המדור (שורה לכל כלל; ריק = כללי הבית הכלליים מ«תוכן האתר»)
+            <textarea className="fld fld-sm" name="rules" defaultValue={s.rules} rows={4} maxLength={2000} style={{ minHeight: 96, lineHeight: 1.5 }} placeholder={"למשל:\nכאן שואלות ומבקשות בלי להתבייש.\nמי שיכולה לעזור – כותבת, מי שלא – מפרגנת."} />
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, cursor: "pointer" }}>

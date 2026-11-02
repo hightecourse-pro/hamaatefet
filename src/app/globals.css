@@ -495,3 +495,14 @@ textarea.line {
 /* Thread rows: the right-hand details only on wider screens */
 .trow-last { display: none; }
 @media (min-width: 720px) { .trow-last { display: flex; } }
+
+/* Sponsor logos (top-left, inside and outside) */
+.sponsors img { height: 44px; width: auto; display: block; }
+.sponsors-compact img { height: 36px; }
+.auth-sponsors { position: absolute; top: 16px; left: 22px; z-index: 1; }
+@media (max-width: 720px) {
+  .sponsors img { height: 32px; }
+  .sponsors-compact img { height: 28px; }
+  .auth-sponsors { top: 12px; left: 16px; }
+  .auth-wrap { padding-top: 84px !important; }
+}

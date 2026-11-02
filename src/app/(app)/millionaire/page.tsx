@@ -92,8 +92,16 @@ export default async function MillionairePage() {
                 {c.get("mill.cheque.amount")}
               </span>
             </div>
-            <div style={{ alignSelf: "flex-start", padding: "8px 16px", border: "2px solid #B5532F", borderRadius: 10, fontWeight: 700, fontSize: 26, color: "#B5532F" }} dir="ltr">
-              $1,000,000
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end", justifyContent: "space-between" }}>
+              <div style={{ padding: "8px 16px", border: "2px solid #B5532F", borderRadius: 10, fontWeight: 700, fontSize: 26, color: "#B5532F" }} dir="ltr">
+                $1,000,000
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, minWidth: 150, borderBottom: "2px dashed #D9B79E", paddingBottom: 4 }}>
+                <span className="hand" style={{ fontSize: 24, color: "#4A1942", transform: "rotate(-3deg)", display: "inline-block" }}>
+                  {c.get("mill.cheque.sign", { שם: displayName(profile) })}
+                </span>
+                <span style={{ fontSize: 13, color: "#7A5566" }}>{c.get("mill.cheque.sign_label")}</span>
+              </div>
             </div>
           </div>
         </div>

@@ -12,6 +12,12 @@ for (const [path, needle] of [["/login", "היי, טוב שבאת!"], ["/signup"
     ok(`public ${path}`, false, String(e).slice(0, 100));
   }
 }
+try {
+  const html = await (await fetch(`${BASE}/login`)).text();
+  ok("public /login sponsor logos", html.includes("beit-vegan.png") && html.includes("had-o-pan.png"));
+} catch (e) {
+  ok("public /login sponsor logos", false, String(e).slice(0, 100));
+}
 for (const path of ["/", "/home", "/forum", "/millionaire", "/birthday", "/profile", "/admin", "/admin/events", "/pending", "/welcome"]) {
   const r = await fetch(`${BASE}${path}`, { redirect: "manual" });
   ok(`gated ${path} redirects`, r.status >= 300 && r.status < 400 && (r.headers.get("location") ?? "").includes("/login"), `status=${r.status}`);

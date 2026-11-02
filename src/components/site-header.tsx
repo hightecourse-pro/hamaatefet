@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Profile } from "@/lib/auth";
 import { initialOf } from "@/lib/auth";
+import { Sponsors, type SponsorLabels } from "@/components/sponsors";
 
 export type NavKey = "forum" | "millionaire" | "birthday" | "profile" | "home";
 
-export interface HeaderLabels {
+export interface HeaderLabels extends SponsorLabels {
   brand: string;
   forum: string;
   millionaire: string;
@@ -62,6 +63,8 @@ export function SiteHeader({ profile, current, labels }: { profile: Profile; cur
           >
             {initialOf(profile)}
           </Link>
+          <span aria-hidden="true" style={{ width: 2, height: 34, background: "#F0E2D8", margin: "0 4px 0 8px", flex: "none" }} />
+          <Sponsors labels={labels} compact />
         </div>
       </div>
     </header>

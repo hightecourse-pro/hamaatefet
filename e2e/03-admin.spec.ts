@@ -62,10 +62,14 @@ test.describe("admin", () => {
     await talk.getByRole("button", { name: "עריכה" }).click();
     await talk.locator('input[name="ask_label"]').fill("QA שאלה לרוחמה");
     await talk.locator('input[name="description"]').fill("QA פירוט חדש");
+    await talk.locator('textarea[name="rules"]').fill("QA כלל ראשון של המדור\nQA כלל שני");
     await talk.getByRole("button", { name: "שמירה" }).click();
     await expect(talk.getByRole("status")).toContainText("נשמר");
     await page.goto("/forum?section=talk");
     await expect(page.getByText("QA פירוט חדש")).toBeVisible();
+    // The section's own house rules replace the general ones in the fold.
+    await page.getByText("כללי הבית בדיונים קבוצתיים").click();
+    await expect(page.getByText("QA כלל שני")).toBeVisible();
     await page.getByRole("button", { name: "QA שאלה לרוחמה" }).click();
     await page.fill('input[name="subject"]', "QA שאלה");
     await page.fill('textarea[name="body"]', "מתי המפגש הבא?");

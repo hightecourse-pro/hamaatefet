@@ -3,6 +3,7 @@ import { requireActive } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
+import { lines as splitLines } from "@/lib/copy";
 import { ThreadRow, type ThreadSummary } from "./thread-row";
 import { NewThreadBar } from "./new-thread-bar";
 
@@ -38,6 +39,10 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
   const feedTitle = q ? c.get("forum.search.results", { חיפוש: q }) : current === "all" ? c.get("forum.feed.title") : (currentSection?.name ?? "");
   const tiles = [ALL, ...sections];
   const copy = c.copy("forum.", "general.", "editor.", "widget.sending");
+  // House rules: the section's own text when the team wrote one, else the general rules from «תוכן האתר».
+  const sectionRules = currentSection?.rules ? splitLines(currentSection.rules) : [];
+  const rulesTitle = sectionRules.length && currentSection ? c.get("forum.rules.section_toggle", { מדור: currentSection.name }) : c.get("forum.rules.toggle");
+  const ruleLines = sectionRules.length ? sectionRules : c.lines("forum.rules");
 
   return (
     <MemberFrame profile={profile} current="forum">
@@ -122,10 +127,10 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
 
         <details style={{ background: "#FFFFFF", border: "2px dashed #E2C8BB", borderRadius: 18, padding: "10px 18px" }}>
           <summary className="hand" style={{ cursor: "pointer", fontSize: 19, color: "#A3304A", listStyle: "none" }}>
-            {c.get("forum.rules.toggle")}
+            {rulesTitle}
           </summary>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 0 4px" }}>
-            {c.lines("forum.rules").map((line, i) => (
+            {ruleLines.map((line, i) => (
               <p key={i} style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>
                 {line}
               </p>

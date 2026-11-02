@@ -228,6 +228,7 @@ export type Database = {
           key: string
           name: string
           post_mode: string
+          rules: string
           sort_order: number
           tint: string
           visible: boolean
@@ -243,6 +244,7 @@ export type Database = {
           key: string
           name: string
           post_mode?: string
+          rules?: string
           sort_order?: number
           tint?: string
           visible?: boolean
@@ -258,6 +260,7 @@ export type Database = {
           key?: string
           name?: string
           post_mode?: string
+          rules?: string
           sort_order?: number
           tint?: string
           visible?: boolean

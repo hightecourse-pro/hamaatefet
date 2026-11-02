@@ -25,7 +25,7 @@ export async function MemberFrame({ profile, current, children }: { profile: Pro
       <SiteHeader
         profile={profile}
         current={current}
-        labels={{ brand: c.get("general.brand"), forum: c.get("home.forum.title"), millionaire: c.get("home.mill.title"), birthday: c.get("home.bday.title"), admin: c.get("general.admin_pill"), profile: c.get("profile.title") }}
+        labels={{ brand: c.get("general.brand"), forum: c.get("home.forum.title"), millionaire: c.get("home.mill.title"), birthday: c.get("home.bday.title"), admin: c.get("general.admin_pill"), profile: c.get("profile.title"), sponsors: c.get("general.sponsors"), sponsorBv: c.get("general.sponsor.bv"), sponsorHop: c.get("general.sponsor.hop") }}
       />
       <div style={{ flex: 1, paddingBottom: 72 }}>{children}</div>
       <SiteFooter text={c.get("general.footer")} />

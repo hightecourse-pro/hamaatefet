@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { monthOptions } from "@/lib/hebrew";
 import { lines, tx, type Copy } from "@/lib/copy";
+import { Sponsors } from "@/components/sponsors";
 
 export type AuthMode = "login" | "signup" | "pending" | "forgot" | "sent";
 
@@ -150,8 +151,11 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
       <div aria-hidden="true" style={{ position: "absolute", top: 220, left: "8%", width: 12, height: 12, borderRadius: "50%", background: "#A3304A" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 90, left: "40%", width: 26, height: 26, borderRadius: "50%", border: "4px solid #F6C9A6" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 160, right: "4%", width: 14, height: 14, borderRadius: 4, background: "#4A1942", transform: "rotate(20deg)" }} />
+      <div className="auth-sponsors">
+        <Sponsors labels={{ sponsors: t("general.sponsors"), sponsorBv: t("general.sponsor.bv"), sponsorHop: t("general.sponsor.hop") }} />
+      </div>
 
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "48px 24px", display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box", position: "relative" }}>
+      <div className="auth-wrap" style={{ maxWidth: 1180, margin: "0 auto", padding: "48px 24px", display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", justifyContent: "center", minHeight: "100vh", boxSizing: "border-box", position: "relative" }}>
         <section style={{ flex: "1 1 440px", maxWidth: 480, background: "#FFFFFF", borderRadius: 32, padding: "40px 36px", boxShadow: "10px 10px 0 #F3DCCB", border: "2px solid #F0E2D8", position: "relative" }}>
           <Image src="/brand/seal.png" alt="" width={92} height={92} style={{ position: "absolute", top: -34, left: -26, width: 92, height: 92, transform: "rotate(-14deg)" }} />
           <Image src="/brand/logo.png" alt={t("general.footer")} width={220} height={93} priority style={{ width: 220, height: "auto", display: "block", margin: "0 auto 24px" }} />

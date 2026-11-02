@@ -8,6 +8,9 @@ test.describe("public + gating", () => {
     await expect(page.getByRole("tab", { name: "כניסה" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "הרשמה" })).toBeVisible();
     await expect(page.getByText("מוזמנת!")).toBeVisible();
+    // Sponsor logos, outside too.
+    await expect(page.getByAltText("מינהל קהילתי בית וגן")).toBeVisible();
+    await expect(page.getByAltText("חד או פאן")).toBeVisible();
   });
 
   test("sign-up tab asks for the first-entry details", async ({ page }) => {

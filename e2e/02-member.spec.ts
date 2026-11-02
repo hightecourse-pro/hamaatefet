@@ -90,6 +90,9 @@ test.describe("member flows", () => {
     await page.goto("/millionaire");
     await expect(page.getByRole("heading", { name: "המיליונרית", level: 1 })).toBeVisible();
     await expect(page.getByText("$1,000,000")).toBeVisible();
+    // The cheque: payable to המעטפת – חד או פאן, signed by the member (the owner, 2/11).
+    await expect(page.getByText("המעטפת – חד או פאן")).toBeVisible();
+    await expect(page.getByText("חתימה", { exact: true })).toBeVisible();
     const host = page.locator("article", { hasText: "ערב סיפורים עם רות" });
     await expect(host).toBeVisible();
     await host.getByRole("button", { name: "שמרי לי מקום" }).click();

@@ -1,14 +1,21 @@
 import Image from "next/image";
+import { getContent } from "@/lib/content";
+import { Sponsors } from "@/components/sponsors";
 
 /** The login card's frame, for the small flows (new password, welcome, pending). */
-export function AuthShell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+export async function AuthShell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+  const c = await getContent();
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#FFF8F2", color: "#3A1530", position: "relative", overflow: "hidden" }}>
       <div aria-hidden="true" style={{ position: "absolute", top: 80, left: "46%", width: 18, height: 18, borderRadius: "50%", background: "#F0A35E" }} />
       <div aria-hidden="true" style={{ position: "absolute", top: 220, left: "8%", width: 12, height: 12, borderRadius: "50%", background: "#A3304A" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 90, left: "40%", width: 26, height: 26, borderRadius: "50%", border: "4px solid #F6C9A6" }} />
       <div aria-hidden="true" style={{ position: "absolute", bottom: 160, right: "4%", width: 14, height: 14, borderRadius: 4, background: "#4A1942", transform: "rotate(20deg)" }} />
+      <div className="auth-sponsors">
+        <Sponsors labels={{ sponsors: c.get("general.sponsors"), sponsorBv: c.get("general.sponsor.bv"), sponsorHop: c.get("general.sponsor.hop") }} />
+      </div>
       <div
+        className="auth-wrap"
         style={{
           maxWidth: 1180,
           margin: "0 auto",
