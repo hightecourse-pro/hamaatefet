@@ -82,12 +82,11 @@ test.describe("admin", () => {
     await member.getByRole("button", { name: "QA שאלה לרוחמה" }).click();
     await expect(member.getByText("QA בקצרה")).toBeVisible();
     await expect(member.getByTestId("composer-section-info")).toContainText("QA כלל שני");
+    await member.fill('input[name="subject"]', "QA שאלה");
+    await member.fill('textarea[name="body"]', "מתי המפגש הבא?");
+    await member.getByRole("button", { name: "שולחת", exact: true }).click();
+    await expect(member.getByRole("status")).toContainText("השאלה נשלחה");
     await memberCtx.close();
-    await page.getByRole("button", { name: "QA שאלה לרוחמה" }).click();
-    await page.fill('input[name="subject"]', "QA שאלה");
-    await page.fill('textarea[name="body"]', "מתי המפגש הבא?");
-    await page.getByRole("button", { name: "שולחת", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("השאלה נשלחה");
 
     await page.goto("/admin/forum");
     await page.getByRole("button", { name: "+ מדור חדש" }).click();

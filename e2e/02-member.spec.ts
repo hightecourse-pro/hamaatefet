@@ -90,7 +90,8 @@ test.describe("member flows", () => {
     // «מבקשת» only – no «מציעה» choice.
     await expect(composer.locator('input[name="section"]')).toHaveCount(1);
     await expect(composer.locator('input[name="section"]')).toHaveValue("help:asking");
-    await expect(composer.getByText("מציעה")).toHaveCount(0);
+    await expect(composer.getByRole("radio")).toHaveCount(0);
+    await expect(composer.getByText("עזרה הדדית – מציעה")).toHaveCount(0);
   });
 
   test("the floating button sends a bug report to the team", async ({ page }) => {
