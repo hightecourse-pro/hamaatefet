@@ -31,7 +31,7 @@ test.describe("admin", () => {
     await expect(page.getByRole("status")).toContainText("נשמר");
   });
 
-  test("forum: the team opens a rich discussion, edits a section, deletes any thread", async ({ page }) => {
+  test("forum: the team opens a rich discussion, edits a section, deletes any thread", async ({ page, browser }) => {
     await page.goto("/forum?section=content");
     await page.getByRole("button", { name: "דיון חדש" }).click();
     const composer = page.locator("#composer");
@@ -60,7 +60,9 @@ test.describe("admin", () => {
     // Section editing: rename + the ask button, seen in the forum, then restored.
     const talk = page.locator('[data-testid="section-row"]', { hasText: "דיונים קבוצתיים" });
     await talk.getByRole("button", { name: "עריכה" }).click();
-    await talk.locator('input[name="ask_label"]').fill("QA שאלה לרוחמה");
+    await talk.getByRole("radio", { name: /שואלות את הצוות/ }).check();
+    await talk.locator('input[name="action_label"]').fill("QA שאלה לרוחמה");
+    await talk.locator('input[name="action_field1"]').fill("QA בקצרה");
     await talk.locator('input[name="description"]').fill("QA פירוט חדש");
     await talk.locator('textarea[name="rules"]').fill("QA כלל ראשון של המדור\nQA כלל שני");
     await talk.getByRole("button", { name: "שמירה" }).click();
@@ -70,6 +72,17 @@ test.describe("admin", () => {
     // The section's own house rules replace the general ones in the fold.
     await page.getByText("כללי הבית בדיונים קבוצתיים").click();
     await expect(page.getByText("QA כלל שני")).toBeVisible();
+    // The team itself always sees «דיון חדש»; a member sees the section's one button – here the question.
+    await expect(page.getByRole("button", { name: "דיון חדש" })).toBeVisible();
+    const memberCtx = await browser.newContext({ storageState: STATE.member });
+    const member = await memberCtx.newPage();
+    await member.goto("/forum?section=talk");
+    await expect(member.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await expect(member.getByRole("button", { name: "בקשה לנושא" })).toHaveCount(0);
+    await member.getByRole("button", { name: "QA שאלה לרוחמה" }).click();
+    await expect(member.getByText("QA בקצרה")).toBeVisible();
+    await expect(member.getByTestId("composer-section-info")).toContainText("QA כלל שני");
+    await memberCtx.close();
     await page.getByRole("button", { name: "QA שאלה לרוחמה" }).click();
     await page.fill('input[name="subject"]', "QA שאלה");
     await page.fill('textarea[name="body"]', "מתי המפגש הבא?");
@@ -90,26 +103,44 @@ test.describe("admin", () => {
     await expect(page.locator('[data-testid="thread-row"]', { hasText: "QA דיון פתוח" })).toHaveCount(0);
   });
 
-  test("forum: a section's own wording for its «דיון חדש» button", async ({ page }) => {
+  test("forum: a section's own wording for its one button, and a proposal section with its own field labels", async ({ page, browser }) => {
     await page.goto("/admin/forum");
     const help = page.locator('[data-testid="section-row"]', { hasText: "עזרה הדדית" });
     await help.getByRole("button", { name: "עריכה" }).click();
-    await help.locator('input[name="new_label"]').fill("QA אני רוצה לשאול…");
+    await help.locator('input[name="action_label"]').fill("QA אני רוצה לשאול…");
     await help.getByRole("button", { name: "שמירה" }).click();
     await expect(help.getByRole("status")).toContainText("נשמר");
-    await expect(help.getByText("דיון חדש: «QA אני רוצה לשאול…»")).toBeVisible();
+    await expect(help.getByText("«QA אני רוצה לשאול…»")).toBeVisible();
 
-    await page.goto("/forum?section=help");
-    await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
-    await page.getByRole("button", { name: "QA אני רוצה לשאול…" }).click();
-    await expect(page.locator("#composer").getByRole("heading", { name: "דיון חדש בעזרה הדדית" })).toBeVisible();
-    await page.goto("/forum");
-    await expect(page.getByRole("button", { name: "QA אני רוצה לשאול…" })).toHaveCount(0);
+    const content = page.locator('[data-testid="section-row"]', { hasText: "תכנים" });
+    await content.getByRole("button", { name: "עריכה" }).click();
+    await content.getByRole("radio", { name: /שולחות הצעה או בקשה לצוות/ }).check();
+    await content.locator('input[name="action_label"]').fill("QA הצעה למדור חדש");
+    await content.locator('input[name="action_field1"]').fill("QA שם המדור");
+    await content.locator('input[name="action_field2"]').fill("QA מה יהיה בו");
+    await content.getByRole("button", { name: "שמירה" }).click();
+    await expect(content.getByRole("status")).toContainText("נשמר");
+
+    const memberCtx = await browser.newContext({ storageState: STATE.member });
+    const member = await memberCtx.newPage();
+    await member.goto("/forum?section=help");
+    await expect(member.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await member.getByRole("button", { name: "QA אני רוצה לשאול…" }).click();
+    await expect(member.locator("#composer").getByRole("heading", { name: "דיון חדש בעזרה הדדית" })).toBeVisible();
+    await member.goto("/forum?section=content");
+    await expect(member.getByRole("button", { name: "בקשה לנושא" })).toHaveCount(0);
+    await member.getByRole("button", { name: "QA הצעה למדור חדש" }).click();
+    await expect(member.getByText("QA שם המדור")).toBeVisible();
+    await expect(member.getByText("QA מה יהיה בו")).toBeVisible();
+    await member.goto("/forum");
+    await expect(member.getByRole("button", { name: "QA אני רוצה לשאול…" })).toHaveCount(0);
+    await expect(member.getByRole("button", { name: "QA הצעה למדור חדש" })).toHaveCount(0);
+    await memberCtx.close();
 
     await page.goto("/admin/forum");
     const again = page.locator('[data-testid="section-row"]', { hasText: "עזרה הדדית" });
     await again.getByRole("button", { name: "עריכה" }).click();
-    await again.locator('input[name="new_label"]').fill("");
+    await again.locator('input[name="action_label"]').fill("");
     await again.getByRole("button", { name: "שמירה" }).click();
     await expect(again.getByRole("status")).toContainText("נשמר");
   });

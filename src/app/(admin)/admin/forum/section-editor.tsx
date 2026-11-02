@@ -9,9 +9,10 @@ export interface SectionRow {
   key: string;
   name: string;
   description: string;
-  post_mode: string;
-  ask_label: string;
-  new_label: string;
+  member_action: string;
+  action_label: string;
+  action_field1: string;
+  action_field2: string;
   rules: string;
   is_new: boolean;
   visible: boolean;
@@ -20,12 +21,22 @@ export interface SectionRow {
   tint: string;
 }
 
+/** What the members may do in a section – exactly one button, inside the section. */
+export const MEMBER_ACTIONS = [
+  { value: "thread", title: "פותחות דיון חדש", short: "כולן פותחות דיונים", hint: "כותרת + גוף. הטופס נעול למדור ומראה את הפירוט וכללי הבית שלו. ברירת מחדל לכפתור: «דיון חדש»." },
+  { value: "help_ask", title: "מבקשות עזרה", short: "«מבקשת» בלבד", hint: "דיון «מבקשת» בלבד, בלי «מציעה». ברירת מחדל: «מבקשת»." },
+  { value: "question", title: "שואלות את הצוות", short: "שאלה לצוות", hint: "השאלה מגיעה לתיבת הפניות ולמייל, עם המייל של השואלת למענה. למשל «שאלה לרוחמה»." },
+  { value: "request", title: "שולחות הצעה או בקשה לצוות", short: "הצעה לצוות", hint: "למשל «הצעה למדור חדש» עם «שם המדור» ו«מה יהיה בו». ברירת מחדל: «בקשה לנושא»." },
+  { value: "none", title: "שום דבר", short: "רק הצוות כותב", hint: "רק הצוות כותב, החברות מגיבות." },
+] as const;
+
 const LABEL = { display: "flex", flexDirection: "column", gap: 4, fontSize: 14, fontWeight: 600 } as const;
 
 /** One section in the admin: a summary line, and an "עריכה" form for everything about it. */
 export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: number }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<AdminState, FormData>(updateSection.bind(null, s.id), { error: null });
+  const act = MEMBER_ACTIONS.find((a) => a.value === s.member_action) ?? MEMBER_ACTIONS[3];
   return (
     <div data-testid="section-row" style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", borderRadius: 16, background: s.visible ? "#FBF1EA" : "#F6F0EC", opacity: s.visible ? 1 : 0.8 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -33,9 +44,10 @@ export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: numb
           <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ width: 12, height: 12, borderRadius: 4, background: s.color, flex: "none" }} aria-hidden="true" />
             <span style={{ fontSize: 17, fontWeight: 600 }}>{s.name}</span>
-            <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: s.post_mode === "members" ? "#E4F0E7" : "#F1E2EE", color: s.post_mode === "members" ? "#2F6B3A" : "#4A1942", fontWeight: 600 }}>{s.post_mode === "members" ? "כולן פותחות דיונים" : "רק הצוות פותח"}</span>
-            {s.ask_label && <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: "#F6DADC", color: "#A3304A", fontWeight: 600 }}>כפתור «{s.ask_label}»</span>}
-            {s.new_label && <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: "#FDEBD3", color: "#9A4318", fontWeight: 600 }}>דיון חדש: «{s.new_label}»</span>}
+            <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: act.value === "none" ? "#F1E2EE" : "#E4F0E7", color: act.value === "none" ? "#4A1942" : "#2F6B3A", fontWeight: 600 }}>
+              {act.short}
+              {s.action_label && ` · «${s.action_label}»`}
+            </span>
             {!s.visible && <span className="pill pill-hidden">מוסתר</span>}
             {s.is_new && <span style={{ fontSize: 12, color: "#9A4318" }}>חדש!</span>}
           </span>
@@ -70,32 +82,32 @@ export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: numb
             </label>
           </div>
           <fieldset style={{ border: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-            <legend style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>מי פותחת דיונים במדור?</legend>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 15, cursor: "pointer" }}>
-              <input type="radio" name="post_mode" value="team" defaultChecked={s.post_mode !== "members"} style={{ accentColor: "#6E0F1A", marginTop: 4 }} />
-              <span>
-                <b>רק הצוות</b> – החברות מגיבות, ויכולות לשלוח «בקשה לנושא» שמגיעה לתיבת הפניות.
-              </span>
-            </label>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 15, cursor: "pointer" }}>
-              <input type="radio" name="post_mode" value="members" defaultChecked={s.post_mode === "members"} style={{ accentColor: "#6E0F1A", marginTop: 4 }} />
-              <span>
-                <b>כולן</b> – כל חברה פותחת דיונים כמה שתרצה.
-              </span>
-            </label>
+            <legend style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>מה החברות עושות במדור? (כפתור אחד בלבד, בתוך המדור; הצוות תמיד פותח דיונים)</legend>
+            {MEMBER_ACTIONS.map((a) => (
+              <label key={a.value} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 15, cursor: "pointer" }}>
+                <input type="radio" name="member_action" value={a.value} defaultChecked={act.value === a.value} style={{ accentColor: "#6E0F1A", marginTop: 4 }} />
+                <span>
+                  <b>{a.title}</b> – {a.hint}
+                </span>
+              </label>
+            ))}
           </fieldset>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <label style={{ ...LABEL, flex: "1 1 220px" }}>
+              נוסח הכפתור (ריק = ברירת המחדל של הסוג)
+              <input className="fld fld-sm" name="action_label" defaultValue={s.action_label} maxLength={60} placeholder="למשל: שאלה לרוחמה / הצעה למדור חדש" />
+            </label>
+            <label style={{ ...LABEL, flex: "1 1 160px" }}>
+              שדה ראשון – תווית (לשאלה / הצעה)
+              <input className="fld fld-sm" name="action_field1" defaultValue={s.action_field1} maxLength={60} placeholder="למשל: שם המדור" />
+            </label>
+            <label style={{ ...LABEL, flex: "1 1 160px" }}>
+              שדה שני – תווית
+              <input className="fld fld-sm" name="action_field2" defaultValue={s.action_field2} maxLength={60} placeholder="למשל: מה יהיה בו" />
+            </label>
+          </div>
           <label style={LABEL}>
-            כפתור «שאלה ל…» במדור (ריק = אין כפתור)
-            <input className="fld fld-sm" name="ask_label" defaultValue={s.ask_label} maxLength={60} placeholder="למשל: שאלה לרוחמה" />
-            <span style={{ fontSize: 13, fontWeight: 400, color: "#7A5566" }}>השאלה מגיעה לתיבת הפניות ולמייל של הצוות, עם כתובת המייל של השואלת למענה ישיר.</span>
-          </label>
-          <label style={LABEL}>
-            כפתור «דיון חדש» במדור – נוסח משלו (ריק = «דיון חדש»)
-            <input className="fld fld-sm" name="new_label" defaultValue={s.new_label} maxLength={60} placeholder="למשל: אני רוצה לשאול… / מעלה דיון חדש" />
-            <span style={{ fontSize: 13, fontWeight: 400, color: "#7A5566" }}>הכפתור מופיע רק בתוך המדור (לא ב«הכל»), והטופס שנפתח מראה את הפירוט ואת כללי הבית של המדור.</span>
-          </label>
-          <label style={LABEL}>
-            כללי הבית של המדור / על אופי המדור (שורה לכל כלל; ריק = כללי הבית הכלליים מ«תוכן האתר»)
+            כללי הבית של המדור / על אופי המדור (שורה לכל כלל; ריק = כללי הבית הכלליים מ«תוכן האתר»). מוצגים בקיפול בפורום וגם בתוך הטופס.
             <textarea className="fld fld-sm" name="rules" defaultValue={s.rules} rows={4} maxLength={2000} style={{ minHeight: 96, lineHeight: 1.5 }} placeholder={"למשל:\nכאן שואלות ומבקשות בלי להתבייש.\nמי שיכולה לעזור – כותבת, מי שלא – מפרגנת."} />
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}>

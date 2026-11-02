@@ -62,7 +62,7 @@ test.describe("member flows", () => {
     await expect(page.getByRole("status")).toContainText("הבקשה הגיעה לצוות");
 
     await page.goto("/forum?section=help");
-    await page.getByRole("button", { name: "דיון חדש" }).click();
+    await page.getByRole("button", { name: "מבקשת" }).click();
     const composer = page.locator("#composer");
     await expect(composer).toBeVisible();
     await composer.locator('input[name="title"]').fill("QA דיון של חברה");
@@ -81,15 +81,16 @@ test.describe("member flows", () => {
     await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
     await expect(page.getByText("כדי לפתוח דיון חדש, היכנסי קודם למדור המתאים.")).toBeVisible();
     await page.goto("/forum?section=help");
-    await page.getByRole("button", { name: "דיון חדש" }).click();
+    await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await page.getByRole("button", { name: "מבקשת" }).click();
     const composer = page.locator("#composer");
     await expect(composer.getByRole("heading", { name: "דיון חדש בעזרה הדדית" })).toBeVisible();
     await expect(composer.getByTestId("composer-section-info")).toContainText("כללי הבית");
     await expect(composer.locator('select[name="section"]')).toHaveCount(0);
-    const radios = composer.locator('input[name="section"]');
-    await expect(radios).toHaveCount(2);
-    await expect(radios.first()).toBeChecked();
-    await expect(composer.getByText("עזרה הדדית – מציעה")).toBeVisible();
+    // «מבקשת» only – no «מציעה» choice.
+    await expect(composer.locator('input[name="section"]')).toHaveCount(1);
+    await expect(composer.locator('input[name="section"]')).toHaveValue("help:asking");
+    await expect(composer.getByText("מציעה")).toHaveCount(0);
   });
 
   test("the floating button sends a bug report to the team", async ({ page }) => {

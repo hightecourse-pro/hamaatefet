@@ -105,19 +105,32 @@ export async function setSectionVisible(id: string, visible: boolean): Promise<A
   return { error: null };
 }
 
+const MEMBER_ACTIONS = new Set(["thread", "help_ask", "question", "request", "none"]);
+
+/** The one member action of a section + its wording; post_mode (the RLS switch) follows from it. */
+function readSectionAction(fd: FormData) {
+  const raw = String(fd.get("member_action") ?? "request");
+  const member_action = MEMBER_ACTIONS.has(raw) ? raw : "request";
+  return {
+    member_action,
+    post_mode: member_action === "thread" || member_action === "help_ask" ? "members" : "team",
+    action_label: String(fd.get("action_label") ?? "").trim().slice(0, 60),
+    action_field1: String(fd.get("action_field1") ?? "").trim().slice(0, 60),
+    action_field2: String(fd.get("action_field2") ?? "").trim().slice(0, 60),
+  };
+}
+
 export async function addSection(_prev: AdminState, fd: FormData): Promise<AdminState> {
   await requireAdmin();
   const name = String(fd.get("name") ?? "").trim();
   const description = String(fd.get("description") ?? "").trim();
-  const post_mode = String(fd.get("post_mode") ?? "team") === "members" ? "members" : "team";
-  const ask_label = String(fd.get("ask_label") ?? "").trim().slice(0, 60);
-  const new_label = String(fd.get("new_label") ?? "").trim().slice(0, 60);
+  const act = readSectionAction(fd);
   const rules = String(fd.get("rules") ?? "").trim().slice(0, 2000);
   if (!name) return { error: "שם המדור חסר." };
   const key = "s" + Date.now().toString(36);
   const admin = createAdminClient();
   const { count } = await admin.from("forum_sections").select("id", { count: "exact", head: true });
-  const { error } = await admin.from("forum_sections").insert({ key, name, description, post_mode, ask_label, new_label, rules, sort_order: (count ?? 0) + 1, icon: "M4 6h16M4 12h16M4 18h10", color: "#4A1942", tint: "#F1E2EE" });
+  const { error } = await admin.from("forum_sections").insert({ key, name, description, ...act, rules, sort_order: (count ?? 0) + 1, icon: "M4 6h16M4 12h16M4 18h10", color: "#4A1942", tint: "#F1E2EE" });
   if (error) return { error: "לא הצלחנו להוסיף." };
   revalidateAdmin(["/forum", "/home"]);
   return { error: null, ok: "המדור נוסף." };
@@ -151,21 +164,19 @@ export async function adminDeleteComment(id: string): Promise<AdminState> {
   return { error: null, ok: "התגובה נמחקה." };
 }
 
-/** Name, description, who may open threads, the "ask" button, the «חדש!» badge, order. */
+/** Name, description, the members' one action (+ wording), house rules, the «חדש!» badge, order. */
 export async function updateSection(id: string, _prev: AdminState, fd: FormData): Promise<AdminState> {
   await requireAdmin();
   const name = String(fd.get("name") ?? "").trim();
   const description = String(fd.get("description") ?? "").trim();
-  const post_mode = String(fd.get("post_mode") ?? "team") === "members" ? "members" : "team";
-  const ask_label = String(fd.get("ask_label") ?? "").trim().slice(0, 60);
-  const new_label = String(fd.get("new_label") ?? "").trim().slice(0, 60);
+  const act = readSectionAction(fd);
   const rules = String(fd.get("rules") ?? "").trim().slice(0, 2000);
   const is_new = fd.get("is_new") === "on";
   const visible = fd.get("visible") === "on";
   const sort_order = Number(fd.get("sort_order") ?? 0) || 0;
   if (!name) return { error: "שם המדור חסר." };
   const admin = createAdminClient();
-  const { error } = await admin.from("forum_sections").update({ name, description, post_mode, ask_label, new_label, rules, is_new, visible, sort_order }).eq("id", id);
+  const { error } = await admin.from("forum_sections").update({ name, description, ...act, rules, is_new, visible, sort_order }).eq("id", id);
   if (error) return { error: "לא הצלחנו לשמור." };
   revalidateAdmin(["/forum", "/home"]);
   return { error: null, ok: "נשמר." };

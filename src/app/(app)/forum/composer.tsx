@@ -15,6 +15,26 @@ export interface ComposerLock {
   description: string;
   rulesTitle: string;
   rules: string[];
+  /** Help section: "asking" = «מבקשת» only (members), "both" = the choice (the team). */
+  helpKind?: "asking" | "offering" | "both";
+}
+
+/** What the section is for: its description and house rules, shown inside the form. */
+export function SectionInfo({ description, rulesTitle, rules }: { description: string; rulesTitle: string; rules: string[] }) {
+  if (!description && rules.length === 0) return null;
+  return (
+    <div data-testid="composer-section-info" style={{ background: "#FFFFFF", border: "1.5px dashed #E2C8BB", borderRadius: 14, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 4, fontSize: 15, lineHeight: 1.5, color: "#5A3348" }}>
+      {description && <b style={{ color: "#3A1530" }}>{description}</b>}
+      {rules.length > 0 && (
+        <span className="hand" style={{ fontSize: 17, color: "#A3304A" }}>
+          {rulesTitle}
+        </span>
+      )}
+      {rules.map((line, i) => (
+        <span key={i}>{line}</span>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -62,7 +82,7 @@ export function Composer({ sections, preselect, lock, userId, copy, onCancel }: 
         ]
       : [{ value: s.key, label: s.name }]
   );
-  const visibleOptions = lock ? options.filter((o) => o.value === lock.key || o.value.startsWith(`${lock.key}:`)) : options;
+  const visibleOptions = lock ? options.filter((o) => (o.value === lock.key || o.value.startsWith(`${lock.key}:`)) && (!lock.helpKind || lock.helpKind === "both" || !o.value.includes(":") || o.value.endsWith(`:${lock.helpKind}`))) : options;
   const initial = visibleOptions.find((o) => o.value === preselect || o.value.startsWith(`${preselect}:`))?.value ?? visibleOptions[0]?.value;
 
   return (
@@ -75,19 +95,7 @@ export function Composer({ sections, preselect, lock, userId, copy, onCancel }: 
           </button>
         )}
       </div>
-      {lock && (lock.description || lock.rules.length > 0) && (
-        <div data-testid="composer-section-info" style={{ background: "#FFFFFF", border: "1.5px dashed #E2C8BB", borderRadius: 14, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 4, fontSize: 15, lineHeight: 1.5, color: "#5A3348" }}>
-          {lock.description && <b style={{ color: "#3A1530" }}>{lock.description}</b>}
-          {lock.rules.length > 0 && (
-            <span className="hand" style={{ fontSize: 17, color: "#A3304A" }}>
-              {lock.rulesTitle}
-            </span>
-          )}
-          {lock.rules.map((line, i) => (
-            <span key={i}>{line}</span>
-          ))}
-        </div>
-      )}
+      {lock && <SectionInfo description={lock.description} rulesTitle={lock.rulesTitle} rules={lock.rules} />}
       {state.ok && (
         <p role="status" className="flash flash-ok" style={{ margin: 0 }}>
           {t("forum.composer.published")}

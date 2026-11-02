@@ -251,7 +251,9 @@ export type Database = {
       }
       forum_sections: {
         Row: {
-          ask_label: string
+          action_field1: string
+          action_field2: string
+          action_label: string
           color: string
           created_at: string
           description: string
@@ -260,7 +262,7 @@ export type Database = {
           is_new: boolean
           key: string
           name: string
-          new_label: string
+          member_action: string
           post_mode: string
           rules: string
           sort_order: number
@@ -268,7 +270,9 @@ export type Database = {
           visible: boolean
         }
         Insert: {
-          ask_label?: string
+          action_field1?: string
+          action_field2?: string
+          action_label?: string
           color?: string
           created_at?: string
           description?: string
@@ -277,7 +281,7 @@ export type Database = {
           is_new?: boolean
           key: string
           name: string
-          new_label?: string
+          member_action?: string
           post_mode?: string
           rules?: string
           sort_order?: number
@@ -285,7 +289,9 @@ export type Database = {
           visible?: boolean
         }
         Update: {
-          ask_label?: string
+          action_field1?: string
+          action_field2?: string
+          action_label?: string
           color?: string
           created_at?: string
           description?: string
@@ -294,7 +300,7 @@ export type Database = {
           is_new?: boolean
           key?: string
           name?: string
-          new_label?: string
+          member_action?: string
           post_mode?: string
           rules?: string
           sort_order?: number

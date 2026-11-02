@@ -5,7 +5,10 @@ import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
 import { lines as splitLines } from "@/lib/copy";
 import { ThreadRow, type ThreadSummary } from "./thread-row";
-import { NewThreadBar } from "./new-thread-bar";
+import { NewThreadBar, asAction } from "./new-thread-bar";
+
+/** The one-line explanation under a section's description, by what members do there. */
+const MODE_TEXT: Record<string, string> = { thread: "forum.mode.members", help_ask: "forum.mode.members", question: "forum.mode.question", request: "forum.mode.team", none: "forum.mode.none" };
 
 export const metadata = { title: "הפורום" };
 
@@ -103,12 +106,12 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
 
         {currentSection && (
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "#5A3348" }}>
-            <b>{currentSection.description}</b> {currentSection.post_mode === "members" ? c.get("forum.mode.members") : c.get("forum.mode.team")}
+            <b>{currentSection.description}</b> {c.get(MODE_TEXT[currentSection.member_action] ?? "forum.mode.team")}
           </p>
         )}
 
         <NewThreadBar
-          sections={sections.map((s) => ({ id: s.id, key: s.key, name: s.name, description: s.description, post_mode: s.post_mode, ask_label: s.ask_label, new_label: s.new_label }))}
+          sections={sections.map((s) => ({ id: s.id, key: s.key, name: s.name, description: s.description, member_action: asAction(s.member_action), action_label: s.action_label, action_field1: s.action_field1, action_field2: s.action_field2 }))}
           current={current}
           rules={{ title: rulesTitle, lines: ruleLines }}
           isAdmin={isAdmin}
