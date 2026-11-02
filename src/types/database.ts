@@ -260,6 +260,7 @@ export type Database = {
           is_new: boolean
           key: string
           name: string
+          new_label: string
           post_mode: string
           rules: string
           sort_order: number
@@ -276,6 +277,7 @@ export type Database = {
           is_new?: boolean
           key: string
           name: string
+          new_label?: string
           post_mode?: string
           rules?: string
           sort_order?: number
@@ -292,6 +294,7 @@ export type Database = {
           is_new?: boolean
           key?: string
           name?: string
+          new_label?: string
           post_mode?: string
           rules?: string
           sort_order?: number
@@ -793,6 +796,7 @@ export type Database = {
     Functions: {
       ad_click: { Args: { aid: string }; Returns: string }
       birth_month_count: { Args: { m: number }; Returns: number }
+      email_registered: { Args: { e: string }; Returns: boolean }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       registration_count: { Args: { eid: string }; Returns: number }

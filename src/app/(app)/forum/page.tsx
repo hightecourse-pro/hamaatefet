@@ -107,7 +107,14 @@ export default async function ForumPage({ searchParams }: { searchParams: Promis
           </p>
         )}
 
-        <NewThreadBar sections={sections.map((s) => ({ id: s.id, key: s.key, name: s.name, post_mode: s.post_mode, ask_label: s.ask_label }))} current={current} isAdmin={isAdmin} userId={userId} copy={copy} />
+        <NewThreadBar
+          sections={sections.map((s) => ({ id: s.id, key: s.key, name: s.name, description: s.description, post_mode: s.post_mode, ask_label: s.ask_label, new_label: s.new_label }))}
+          current={current}
+          rules={{ title: rulesTitle, lines: ruleLines }}
+          isAdmin={isAdmin}
+          userId={userId}
+          copy={copy}
+        />
 
         <section aria-labelledby="feed" style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 22, overflow: "hidden" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, padding: "14px 16px 10px" }}>

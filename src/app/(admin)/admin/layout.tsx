@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/home" style={{ color: "#FBE3D6", fontSize: 16, padding: 10 }}>
               לצפייה באתר
             </Link>
-            <Link href="/profile" aria-label="החשבון שלי" style={{ width: 40, height: 40, borderRadius: "50%", background: "#F0A35E", color: "#3A1530", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, textDecoration: "none" }}>
+            <Link href="/profile" aria-label="החשבון שלי" title={profile.email} style={{ width: 40, height: 40, borderRadius: "50%", background: "#F0A35E", color: "#3A1530", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, textDecoration: "none" }}>
               {initialOf(profile)}
             </Link>
           </div>

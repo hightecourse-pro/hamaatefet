@@ -21,6 +21,17 @@ test.describe("public + gating", () => {
     expect(click.headers()["location"]).toContain("/login");
   });
 
+  test("forgot password: an unknown address is told so; a registered one gets the sent screen", async ({ page }) => {
+    await page.goto("/forgot-password");
+    await page.fill('input[name="email"]', "nobody-qa@example.com");
+    await page.getByRole("button", { name: "שלחו לי קישור" }).click();
+    await expect(page.getByRole("alert")).toContainText("לא מצאנו חשבון");
+    await page.fill('input[name="email"]', account("member").email);
+    await page.getByRole("button", { name: "שלחו לי קישור" }).click();
+    await expect(page.getByRole("heading", { name: "בדקי את תיבת המייל" })).toBeVisible();
+    await expect(page.getByText("המייל מגיע מ«חד או פאן»")).toBeVisible();
+  });
+
   test("sign-up tab asks for the first-entry details", async ({ page }) => {
     await page.goto("/signup");
     await expect(page.getByRole("heading", { name: "מצטרפת למעטפת" })).toBeVisible();

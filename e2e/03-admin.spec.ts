@@ -90,6 +90,30 @@ test.describe("admin", () => {
     await expect(page.locator('[data-testid="thread-row"]', { hasText: "QA דיון פתוח" })).toHaveCount(0);
   });
 
+  test("forum: a section's own wording for its «דיון חדש» button", async ({ page }) => {
+    await page.goto("/admin/forum");
+    const help = page.locator('[data-testid="section-row"]', { hasText: "עזרה הדדית" });
+    await help.getByRole("button", { name: "עריכה" }).click();
+    await help.locator('input[name="new_label"]').fill("QA אני רוצה לשאול…");
+    await help.getByRole("button", { name: "שמירה" }).click();
+    await expect(help.getByRole("status")).toContainText("נשמר");
+    await expect(help.getByText("דיון חדש: «QA אני רוצה לשאול…»")).toBeVisible();
+
+    await page.goto("/forum?section=help");
+    await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await page.getByRole("button", { name: "QA אני רוצה לשאול…" }).click();
+    await expect(page.locator("#composer").getByRole("heading", { name: "דיון חדש בעזרה הדדית" })).toBeVisible();
+    await page.goto("/forum");
+    await expect(page.getByRole("button", { name: "QA אני רוצה לשאול…" })).toHaveCount(0);
+
+    await page.goto("/admin/forum");
+    const again = page.locator('[data-testid="section-row"]', { hasText: "עזרה הדדית" });
+    await again.getByRole("button", { name: "עריכה" }).click();
+    await again.locator('input[name="new_label"]').fill("");
+    await again.getByRole("button", { name: "שמירה" }).click();
+    await expect(again.getByRole("status")).toContainText("נשמר");
+  });
+
   test("forum: the daily digest card – switch, last run, a sample to me", async ({ page }) => {
     await page.goto("/admin/forum");
     const card = page.getByTestId("digest-card");

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { monthOptions } from "@/lib/hebrew";
 import { lines, tx, type Copy } from "@/lib/copy";
 import { Sponsors } from "@/components/sponsors";
+import { emailRegistered } from "@/app/(auth)/actions";
 
 export type AuthMode = "login" | "signup" | "pending" | "forgot" | "sent";
 
@@ -135,6 +136,10 @@ export function AuthScreen({ initialMode = "login", copy }: { initialMode?: Auth
     const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(t("auth.err.email"));
     setBusy(true);
+    if (!(await emailRegistered(email))) {
+      setBusy(false);
+      return setError(t("auth.err.no_account"));
+    }
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     setBusy(false);

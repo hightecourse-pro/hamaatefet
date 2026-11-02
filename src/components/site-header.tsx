@@ -58,6 +58,7 @@ export function SiteHeader({ profile, current, labels }: { profile: Profile; cur
           <Link
             href="/profile"
             aria-label={labels.profile}
+            title={profile.email}
             aria-current={onProfile ? "page" : undefined}
             style={{ width: 44, height: 44, borderRadius: "50%", background: onProfile ? "#6E0F1A" : "#F6D9CB", color: onProfile ? "#FFF3EA" : "#6E0F1A", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, textDecoration: "none", fontSize: 18 }}
           >

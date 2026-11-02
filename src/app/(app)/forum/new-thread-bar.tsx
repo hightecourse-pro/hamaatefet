@@ -10,25 +10,36 @@ export interface SectionLite {
   id: string;
   key: string;
   name: string;
+  description: string;
   post_mode: string;
   ask_label: string;
+  /** The section's own wording for the "new thread" button (empty = «דיון חדש»). */
+  new_label: string;
 }
 
 /**
- * The action bar above the thread list. Depending on the section and on who she
- * is: "דיון חדש" (the team anywhere; a member in a "members" section), "בקשה
- * לנושא" (a member in a team-only section) and the section's own "ask" button
- * (e.g. «שאלה לרוחמה»). Each opens its panel in place.
+ * The action bar above the thread list – inside a section only (the owner, 2/11:
+ * one general button hid what each section is about). Depending on the section
+ * and on who she is: the section's "new thread" button (its own wording, or
+ * «דיון חדש»; the team anywhere, a member in a "members" section), «בקשה לנושא»
+ * (a member in a team-only section) and the section's own "ask" button (e.g.
+ * «שאלה לרוחמה»). On «הכל» there is only a hint to enter a section.
  */
-export function NewThreadBar({ sections, current, isAdmin, userId, copy }: { sections: SectionLite[]; current: string; isAdmin: boolean; userId: string; copy: Copy }) {
+export function NewThreadBar({ sections, current, rules, isAdmin, userId, copy }: { sections: SectionLite[]; current: string; rules: { title: string; lines: string[] }; isAdmin: boolean; userId: string; copy: Copy }) {
   const t = (k: string) => tx(copy, k);
   const [panel, setPanel] = useState<"none" | "new" | "request" | "ask">("none");
   const section = sections.find((s) => s.key === current) ?? null;
   const postable = isAdmin ? sections : sections.filter((s) => s.post_mode === "members");
-  const canPost = current === "all" ? postable.length > 0 : postable.some((s) => s.key === current);
+  const canPost = !!section && postable.some((s) => s.key === section.key);
   const canRequest = !isAdmin && !!section && section.post_mode === "team";
   const askLabel = section?.ask_label?.trim() ?? "";
+  if (!section) {
+    return postable.length > 0 ? (
+      <p style={{ margin: 0, fontSize: 15, color: "#6A4558" }}>{t("forum.composer.pick_section")}</p>
+    ) : null;
+  }
   if (!canPost && !canRequest && !askLabel) return null;
+  const newLabel = section.new_label?.trim() || t("forum.composer.toggle");
 
   const toggle = (p: typeof panel) => setPanel((v) => (v === p ? "none" : p));
   const BTN = { display: "inline-flex", alignItems: "center", gap: 8, height: 46, padding: "0 18px", borderRadius: 999, fontSize: 16, fontWeight: 700, cursor: "pointer", border: "none" } as const;
@@ -41,7 +52,7 @@ export function NewThreadBar({ sections, current, isAdmin, userId, copy }: { sec
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            {t("forum.composer.toggle")}
+            {newLabel}
           </button>
         )}
         {canRequest && (
@@ -59,7 +70,16 @@ export function NewThreadBar({ sections, current, isAdmin, userId, copy }: { sec
           </button>
         )}
       </div>
-      {panel === "new" && canPost && <Composer sections={postable.map((s) => ({ key: s.key, name: s.name }))} preselect={current === "all" ? undefined : current} userId={userId} copy={copy} onCancel={() => setPanel("none")} />}
+      {panel === "new" && canPost && (
+        <Composer
+          sections={postable.map((s) => ({ key: s.key, name: s.name }))}
+          preselect={section.key}
+          lock={{ key: section.key, name: section.name, description: section.description, rulesTitle: rules.title, rules: rules.lines }}
+          userId={userId}
+          copy={copy}
+          onCancel={() => setPanel("none")}
+        />
+      )}
       {panel === "request" && section && <MessagePanel kind="topic" section={section} copy={copy} onClose={() => setPanel("none")} />}
       {panel === "ask" && section && <MessagePanel kind="question" section={section} copy={copy} onClose={() => setPanel("none")} />}
     </div>

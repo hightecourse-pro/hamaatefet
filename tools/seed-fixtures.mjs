@@ -71,8 +71,8 @@ await admin.from("events").delete().like("title", "QA %");
 await admin.from("team_messages").delete().in("user_id", qaIds);
 await admin.from("forum_sections").delete().like("name", "QA %");
 // Section modes the specs rely on: «עזרה הדדית» is open to everyone, the rest team-only, no ask buttons.
-await admin.from("forum_sections").update({ post_mode: "members", ask_label: "", rules: "" }).eq("key", "help");
-await admin.from("forum_sections").update({ post_mode: "team", ask_label: "", rules: "" }).in("key", ["content", "bts", "talk"]);
+await admin.from("forum_sections").update({ post_mode: "members", ask_label: "", new_label: "", rules: "" }).eq("key", "help");
+await admin.from("forum_sections").update({ post_mode: "team", ask_label: "", new_label: "", rules: "" }).in("key", ["content", "bts", "talk"]);
 await admin.from("settings").upsert({ key: "launch_nudge", value: { enabled: true } });
 await admin.from("settings").upsert({ key: "digest", value: { enabled: true } });
 

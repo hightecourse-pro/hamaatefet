@@ -9,12 +9,22 @@ import { tx, type Copy } from "@/lib/copy";
 
 const LABEL = { display: "flex", flexDirection: "column", gap: 6, fontSize: 15, fontWeight: 500 } as const;
 
+export interface ComposerLock {
+  key: string;
+  name: string;
+  description: string;
+  rulesTitle: string;
+  rules: string[];
+}
+
 /**
  * "Open a discussion" – rich text, emoji, an optional image. `sections` are the
  * ones this member may post in (the team: all; a member: the "members" ones).
- * On success she lands on the new thread.
+ * With `lock` the form belongs to one section: no section picker (the help
+ * section still asks "מבקשת / מציעה"), and the section's description + house
+ * rules are shown at the top. On success she lands on the new thread.
  */
-export function Composer({ sections, preselect, userId, copy, onCancel }: { sections: { key: string; name: string }[]; preselect?: string; userId: string; copy: Copy; onCancel?: () => void }) {
+export function Composer({ sections, preselect, lock, userId, copy, onCancel }: { sections: { key: string; name: string }[]; preselect?: string; lock?: ComposerLock; userId: string; copy: Copy; onCancel?: () => void }) {
   const t = (k: string, vars?: Record<string, string>) => tx(copy, k, vars);
   const editorLabels = { bold: copy["editor.bold"], italic: copy["editor.italic"], underline: copy["editor.underline"], list: copy["editor.list"], link: copy["editor.link"], linkPrompt: copy["editor.link_prompt"], emoji: copy["editor.emoji"], emojiPicker: copy["editor.emoji_picker"] };
   const router = useRouter();
@@ -52,18 +62,32 @@ export function Composer({ sections, preselect, userId, copy, onCancel }: { sect
         ]
       : [{ value: s.key, label: s.name }]
   );
-  const initial = options.find((o) => o.value === preselect || o.value.startsWith(`${preselect}:`))?.value ?? options[0]?.value;
+  const visibleOptions = lock ? options.filter((o) => o.value === lock.key || o.value.startsWith(`${lock.key}:`)) : options;
+  const initial = visibleOptions.find((o) => o.value === preselect || o.value.startsWith(`${preselect}:`))?.value ?? visibleOptions[0]?.value;
 
   return (
     <section id="composer" style={{ background: "#FBF1EA", border: "2px solid #EAD3C6", borderRadius: 22, padding: 20, display: "flex", flexDirection: "column", gap: 12, boxShadow: "6px 6px 0 #4A1942" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700 }}>{t("forum.composer.title")}</h2>
+        <h2 style={{ margin: 0, fontSize: 21, fontWeight: 700 }}>{lock ? t("forum.composer.title_in", { מדור: lock.name }) : t("forum.composer.title")}</h2>
         {onCancel && (
           <button type="button" className="btn-link" onClick={onCancel} style={{ fontSize: 14 }}>
             {t("forum.composer.cancel")}
           </button>
         )}
       </div>
+      {lock && (lock.description || lock.rules.length > 0) && (
+        <div data-testid="composer-section-info" style={{ background: "#FFFFFF", border: "1.5px dashed #E2C8BB", borderRadius: 14, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 4, fontSize: 15, lineHeight: 1.5, color: "#5A3348" }}>
+          {lock.description && <b style={{ color: "#3A1530" }}>{lock.description}</b>}
+          {lock.rules.length > 0 && (
+            <span className="hand" style={{ fontSize: 17, color: "#A3304A" }}>
+              {lock.rulesTitle}
+            </span>
+          )}
+          {lock.rules.map((line, i) => (
+            <span key={i}>{line}</span>
+          ))}
+        </div>
+      )}
       {state.ok && (
         <p role="status" className="flash flash-ok" style={{ margin: 0 }}>
           {t("forum.composer.published")}
@@ -77,16 +101,32 @@ export function Composer({ sections, preselect, userId, copy, onCancel }: { sect
       <form action={action} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <input type="hidden" name="image_path" value={imagePath} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-          <label style={{ ...LABEL, flex: "1 1 200px" }}>
-            {t("forum.composer.section")}
-            <select className="fld" name="section" style={{ height: 50, padding: "0 14px" }} defaultValue={initial}>
-              {options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {lock && visibleOptions.length <= 1 ? (
+            <input type="hidden" name="section" value={visibleOptions[0]?.value ?? lock.key} />
+          ) : lock ? (
+            <fieldset style={{ border: "none", padding: 0, margin: 0, flex: "1 1 200px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <legend style={{ fontSize: 15, fontWeight: 500, marginBottom: 6, padding: 0 }}>{t("forum.composer.section")}</legend>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+                {visibleOptions.map((o) => (
+                  <label key={o.value} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, cursor: "pointer" }}>
+                    <input type="radio" name="section" value={o.value} defaultChecked={o.value === initial} style={{ width: 18, height: 18, accentColor: "#6E0F1A" }} />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <label style={{ ...LABEL, flex: "1 1 200px" }}>
+              {t("forum.composer.section")}
+              <select className="fld" name="section" style={{ height: 50, padding: "0 14px" }} defaultValue={initial}>
+                {options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label style={{ ...LABEL, flex: "2 1 260px" }}>
             {t("forum.composer.post_title")}
             <input className="fld" name="title" type="text" placeholder={t("forum.composer.post_title_placeholder")} maxLength={140} required style={{ height: 50 }} />

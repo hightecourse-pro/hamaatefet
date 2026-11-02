@@ -76,6 +76,22 @@ test.describe("member flows", () => {
     await expect(page).toHaveURL(/\/forum$/);
   });
 
+  test("forum: «הכל» only hints to enter a section; inside a section the form is locked to it and shows what it is about", async ({ page }) => {
+    await page.goto("/forum");
+    await expect(page.getByRole("button", { name: "דיון חדש" })).toHaveCount(0);
+    await expect(page.getByText("כדי לפתוח דיון חדש, היכנסי קודם למדור המתאים.")).toBeVisible();
+    await page.goto("/forum?section=help");
+    await page.getByRole("button", { name: "דיון חדש" }).click();
+    const composer = page.locator("#composer");
+    await expect(composer.getByRole("heading", { name: "דיון חדש בעזרה הדדית" })).toBeVisible();
+    await expect(composer.getByTestId("composer-section-info")).toContainText("כללי הבית");
+    await expect(composer.locator('select[name="section"]')).toHaveCount(0);
+    const radios = composer.locator('input[name="section"]');
+    await expect(radios).toHaveCount(2);
+    await expect(radios.first()).toBeChecked();
+    await expect(composer.getByText("עזרה הדדית – מציעה")).toBeVisible();
+  });
+
   test("the floating button sends a bug report to the team", async ({ page }) => {
     await page.goto("/home");
     await expect(page.getByText("המעטפת בהרצה")).toBeVisible();

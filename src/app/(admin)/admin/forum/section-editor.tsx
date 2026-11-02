@@ -11,6 +11,7 @@ export interface SectionRow {
   description: string;
   post_mode: string;
   ask_label: string;
+  new_label: string;
   rules: string;
   is_new: boolean;
   visible: boolean;
@@ -34,6 +35,7 @@ export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: numb
             <span style={{ fontSize: 17, fontWeight: 600 }}>{s.name}</span>
             <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: s.post_mode === "members" ? "#E4F0E7" : "#F1E2EE", color: s.post_mode === "members" ? "#2F6B3A" : "#4A1942", fontWeight: 600 }}>{s.post_mode === "members" ? "כולן פותחות דיונים" : "רק הצוות פותח"}</span>
             {s.ask_label && <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: "#F6DADC", color: "#A3304A", fontWeight: 600 }}>כפתור «{s.ask_label}»</span>}
+            {s.new_label && <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 999, background: "#FDEBD3", color: "#9A4318", fontWeight: 600 }}>דיון חדש: «{s.new_label}»</span>}
             {!s.visible && <span className="pill pill-hidden">מוסתר</span>}
             {s.is_new && <span style={{ fontSize: 12, color: "#9A4318" }}>חדש!</span>}
           </span>
@@ -86,6 +88,11 @@ export function SectionEditor({ s, postCount }: { s: SectionRow; postCount: numb
             כפתור «שאלה ל…» במדור (ריק = אין כפתור)
             <input className="fld fld-sm" name="ask_label" defaultValue={s.ask_label} maxLength={60} placeholder="למשל: שאלה לרוחמה" />
             <span style={{ fontSize: 13, fontWeight: 400, color: "#7A5566" }}>השאלה מגיעה לתיבת הפניות ולמייל של הצוות, עם כתובת המייל של השואלת למענה ישיר.</span>
+          </label>
+          <label style={LABEL}>
+            כפתור «דיון חדש» במדור – נוסח משלו (ריק = «דיון חדש»)
+            <input className="fld fld-sm" name="new_label" defaultValue={s.new_label} maxLength={60} placeholder="למשל: אני רוצה לשאול… / מעלה דיון חדש" />
+            <span style={{ fontSize: 13, fontWeight: 400, color: "#7A5566" }}>הכפתור מופיע רק בתוך המדור (לא ב«הכל»), והטופס שנפתח מראה את הפירוט ואת כללי הבית של המדור.</span>
           </label>
           <label style={LABEL}>
             כללי הבית של המדור / על אופי המדור (שורה לכל כלל; ריק = כללי הבית הכלליים מ«תוכן האתר»)
