@@ -25,7 +25,7 @@ test.describe("public + gating", () => {
     await page.goto("/forgot-password");
     await page.fill('input[name="email"]', "nobody-qa@example.com");
     await page.getByRole("button", { name: "שלחו לי קישור" }).click();
-    await expect(page.getByRole("alert")).toContainText("לא מצאנו חשבון");
+    await expect(page.locator("p[role=\"alert\"]")).toContainText("לא מצאנו חשבון");
     await page.fill('input[name="email"]', account("member").email);
     await page.getByRole("button", { name: "שלחו לי קישור" }).click();
     await expect(page.getByRole("heading", { name: "בדקי את תיבת המייל" })).toBeVisible();
@@ -51,13 +51,6 @@ test.describe("public + gating", () => {
     await page.check('[name="terms"]');
     await page.getByRole("button", { name: "שולחת בקשת הצטרפות" }).click();
     await expect(page.locator("p[role=\"alert\"]")).toContainText("30");
-  });
-
-  test("forgot password shows the sent screen", async ({ page }) => {
-    await page.goto("/forgot-password");
-    await page.fill('[name="email"]', "nobody-e2e@example.com");
-    await page.getByRole("button", { name: "שלחו לי קישור" }).click();
-    await expect(page.getByRole("heading", { name: "בדקי את תיבת המייל" })).toBeVisible();
   });
 
   test("terms page renders", async ({ page }) => {
