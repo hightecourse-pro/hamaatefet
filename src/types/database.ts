@@ -216,6 +216,39 @@ export type Database = {
           },
         ]
       }
+      ads: {
+        Row: {
+          active: boolean
+          clicks: number
+          created_at: string
+          id: string
+          image_path: string
+          link_url: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          clicks?: number
+          created_at?: string
+          id?: string
+          image_path: string
+          link_url?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          clicks?: number
+          created_at?: string
+          id?: string
+          image_path?: string
+          link_url?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       forum_sections: {
         Row: {
           ask_label: string
@@ -457,6 +490,7 @@ export type Database = {
           over_30_confirmed: boolean
           phone: string
           remind_birthday: boolean
+          daily_digest: boolean
           role: Database["public"]["Enums"]["member_role"]
           status: Database["public"]["Enums"]["member_status"]
           terms_accepted_at: string | null
@@ -473,6 +507,7 @@ export type Database = {
           over_30_confirmed?: boolean
           phone?: string
           remind_birthday?: boolean
+          daily_digest?: boolean
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["member_status"]
           terms_accepted_at?: string | null
@@ -489,6 +524,7 @@ export type Database = {
           over_30_confirmed?: boolean
           phone?: string
           remind_birthday?: boolean
+          daily_digest?: boolean
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["member_status"]
           terms_accepted_at?: string | null
@@ -755,6 +791,7 @@ export type Database = {
       }
     }
     Functions: {
+      ad_click: { Args: { aid: string }; Returns: string }
       birth_month_count: { Args: { m: number }; Returns: number }
       is_active: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }

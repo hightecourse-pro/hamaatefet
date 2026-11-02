@@ -90,6 +90,48 @@ test.describe("admin", () => {
     await expect(page.locator('[data-testid="thread-row"]', { hasText: "QA דיון פתוח" })).toHaveCount(0);
   });
 
+  test("forum: the daily digest card – switch, last run, a sample to me", async ({ page }) => {
+    await page.goto("/admin/forum");
+    const card = page.getByTestId("digest-card");
+    await expect(card.getByRole("heading", { name: "הסיכום היומי במייל" })).toBeVisible();
+    await expect(card.getByText("12:30")).toBeVisible();
+    const sw = card.getByRole("checkbox", { name: "הסיכום היומי פעיל" });
+    await expect(sw).toBeChecked();
+    await sw.uncheck();
+    await page.reload();
+    await expect(card.getByRole("checkbox", { name: "הסיכום היומי פעיל" })).not.toBeChecked();
+    await card.getByRole("checkbox", { name: "הסיכום היומי פעיל" }).check();
+    await page.reload();
+    await expect(card.getByRole("checkbox", { name: "הסיכום היומי פעיל" })).toBeChecked();
+    // On staging the admin address is outside the allowlist, so the sample is blocked; the button still reports honestly.
+    await card.getByRole("button", { name: /שליחת דוגמה אליי/ }).click();
+    await expect(card.getByText(/נשלח/)).toBeVisible({ timeout: 20_000 });
+  });
+
+  test("ads: upload one, see it in the list, hide it, delete it", async ({ page }) => {
+    await page.goto("/admin/ads");
+    await expect(page.getByRole("heading", { name: "פרסומות" })).toBeVisible();
+    await expect(page.getByText("300 פיקסלים").first()).toBeVisible();
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+    await page.locator('input[name="name"]').fill("QA פרסומת 2");
+    await page.locator('input[name="image"]').setInputFiles({ name: "qa2.png", mimeType: "image/png", buffer: png });
+    await page.locator('input[name="link_url"]').fill("https://example.com/qa2");
+    await page.getByRole("button", { name: "העלאה" }).click();
+    await expect(page.getByRole("status")).toContainText("הפרסומת הועלתה");
+    const row = page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת 2" });
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("img", { name: "QA פרסומת 2" })).toBeVisible();
+    await expect(row.getByText("0 לחיצות")).toBeVisible();
+    await row.getByRole("checkbox", { name: "מוצגת לחברות" }).uncheck();
+    await page.reload();
+    await expect(page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת 2" }).getByRole("checkbox", { name: "מוצגת לחברות" })).not.toBeChecked();
+    page.once("dialog", (d) => d.accept());
+    await page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת 2" }).getByRole("button", { name: "מחיקה" }).click();
+    await expect(page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת 2" })).toHaveCount(0);
+    // The seed's own ad is still there, still active.
+    await expect(page.locator('[data-testid="ad-row"]', { hasText: "QA פרסומת" }).first()).toBeVisible();
+  });
+
   test("inbox: the team sees the requests, marks one handled, filters", async ({ page }) => {
     await page.goto("/admin/inbox");
     await expect(page.getByRole("heading", { name: "פניות" })).toBeVisible();

@@ -13,6 +13,14 @@ test.describe("public + gating", () => {
     await expect(page.getByAltText("חד או פאן", { exact: true })).toBeVisible();
   });
 
+  test("the digest cron refuses without the secret; the ad click route sends a stranger to login", async ({ page }) => {
+    const cron = await page.request.get("/api/cron/daily-digest");
+    expect(cron.status()).toBe(401);
+    const click = await page.request.get("/ad/00000000-0000-0000-0000-000000000000", { maxRedirects: 0 });
+    expect(click.status()).toBe(302);
+    expect(click.headers()["location"]).toContain("/login");
+  });
+
   test("sign-up tab asks for the first-entry details", async ({ page }) => {
     await page.goto("/signup");
     await expect(page.getByRole("heading", { name: "מצטרפת למעטפת" })).toBeVisible();

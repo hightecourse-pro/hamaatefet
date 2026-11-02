@@ -2,7 +2,7 @@ import Image from "next/image";
 import { requireActive } from "@/lib/auth";
 import { MemberFrame } from "@/components/member-frame";
 import { getContent } from "@/lib/content";
-import { BirthdayForm, DetailsForm } from "./profile-forms";
+import { BirthdayForm, DetailsForm, MailForm } from "./profile-forms";
 
 export const metadata = { title: "החשבון שלי" };
 
@@ -29,6 +29,13 @@ export default async function ProfilePage() {
           </h2>
           <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#5A3348", whiteSpace: "pre-line" }}>{c.get("profile.birthday.text")}</p>
           <BirthdayForm birthMonth={profile.birth_month} remind={profile.remind_birthday} copy={copy} />
+        </section>
+
+        <section aria-labelledby="ml" style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 28, padding: 26, display: "flex", flexDirection: "column", gap: 14 }}>
+          <h2 id="ml" style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>
+            {c.get("profile.mail.title")}
+          </h2>
+          <MailForm digest={profile.daily_digest} copy={copy} />
         </section>
 
         <section aria-labelledby="det" style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 28, padding: 26, display: "flex", flexDirection: "column", gap: 16 }}>

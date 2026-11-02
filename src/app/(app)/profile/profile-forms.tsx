@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { saveBirthday, saveDetails, type ProfileState } from "./actions";
+import { saveBirthday, saveDetails, saveMail, type ProfileState } from "./actions";
 import { monthOptions } from "@/lib/hebrew";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -103,5 +103,33 @@ export function DetailsForm({ firstName, lastName, email, phone, copy }: { first
         </div>
       )}
     </div>
+  );
+}
+
+export function MailForm({ digest, copy }: { digest: boolean; copy: Copy }) {
+  const t = (k: string) => tx(copy, k);
+  const [state, action, pending] = useActionState<ProfileState, FormData>(saveMail, { error: null });
+  return (
+    <form action={action} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 16, cursor: "pointer" }}>
+        <input type="checkbox" name="digest" defaultChecked={digest} style={{ width: 20, height: 20, accentColor: "#A3304A" }} />
+        {t("profile.digest")}
+      </label>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <button type="submit" className="btn-primary" disabled={pending}>
+          {pending ? t("profile.saving") : t("profile.save")}
+        </button>
+        {state.ok && (
+          <span role="status" style={{ fontSize: 15, color: "#2F6B3A" }}>
+            {state.ok}
+          </span>
+        )}
+        {state.error && (
+          <span role="alert" style={{ fontSize: 15, color: "#A3304A" }}>
+            {state.error}
+          </span>
+        )}
+      </div>
+    </form>
   );
 }

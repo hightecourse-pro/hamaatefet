@@ -18,7 +18,7 @@ try {
 } catch (e) {
   ok("public /login sponsor logos", false, String(e).slice(0, 100));
 }
-for (const path of ["/", "/home", "/forum", "/millionaire", "/birthday", "/profile", "/admin", "/admin/events", "/pending", "/welcome"]) {
+for (const path of ["/", "/home", "/forum", "/millionaire", "/birthday", "/profile", "/admin", "/admin/events", "/admin/ads", "/pending", "/welcome"]) {
   const r = await fetch(`${BASE}${path}`, { redirect: "manual" });
   ok(`gated ${path} redirects`, r.status >= 300 && r.status < 400 && (r.headers.get("location") ?? "").includes("/login"), `status=${r.status}`);
 }
@@ -26,6 +26,8 @@ const bad = await fetch(`${BASE}/auth/confirm?token_hash=x&type=signup`, { redir
 ok("bad auth link bounces to login", bad.status >= 300 && bad.status < 400 && (bad.headers.get("location") ?? "").includes("error="));
 const cron = await fetch(`${BASE}/api/cron/birthday-reminders`);
 ok("cron refuses without secret", cron.status === 401);
+const digest = await fetch(`${BASE}/api/cron/daily-digest`);
+ok("cron daily-digest refuses without secret", digest.status === 401);
 
 console.log("===== PROD SANITY =====");
 for (const r of out) console.log(r);

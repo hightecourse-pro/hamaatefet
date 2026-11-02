@@ -131,6 +131,36 @@ test.describe("member flows", () => {
     await expect(page.getByRole("heading", { name: "סיסמה חדשה" })).toBeVisible();
   });
 
+  test("profile: the daily digest can be switched off and on", async ({ page }) => {
+    await page.goto("/profile");
+    const form = page.locator("form").filter({ has: page.locator('[name="digest"]') });
+    await expect(form.locator('[name="digest"]')).toBeChecked();
+    await form.locator('[name="digest"]').uncheck();
+    await form.getByRole("button", { name: "שמירה" }).click();
+    await expect(form.getByRole("status")).toContainText("נשמר");
+    await page.reload();
+    await expect(form.locator('[name="digest"]')).not.toBeChecked();
+    await form.locator('[name="digest"]').check();
+    await form.getByRole("button", { name: "שמירה" }).click();
+    await expect(form.getByRole("status")).toContainText("נשמר");
+  });
+
+  test("the advertisement slot: beside the content on a wide screen, under it on a phone, a click is counted", async ({ page }) => {
+    await page.goto("/home");
+    const side = page.getByTestId("ad-side");
+    await expect(side.getByRole("img", { name: "QA פרסומת" })).toBeVisible();
+    await expect(page.getByTestId("ad-bottom")).toBeHidden();
+    const href = await side.getByRole("link", { name: "QA פרסומת" }).getAttribute("href");
+    expect(href).toMatch(/^\/ad\/[0-9a-f-]{36}$/);
+    const r = await page.request.get(href!, { maxRedirects: 0 });
+    expect(r.status()).toBe(302);
+    expect(r.headers()["location"]).toBe("https://example.com/qa");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("ad-bottom").getByRole("img", { name: "QA פרסומת" })).toBeVisible();
+    await expect(side).toBeHidden();
+  });
+
   test("terms page shows the editable body", async ({ page }) => {
     await page.goto("/terms");
     await expect(page.getByRole("heading", { name: "תקנון ומדיניות פרטיות" })).toBeVisible();

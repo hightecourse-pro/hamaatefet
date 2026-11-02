@@ -10,6 +10,7 @@ const TABS = [
   { key: "mill", href: "/admin/millionaire", label: "המיליונרית", icon: "M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" },
   { key: "bday", href: "/admin/birthday", label: "חוגגות חודש טוב", icon: "M4 21h16M5 21V12h14v9M12 12V8M12 5a1 1 0 0 0 0-2M8 12V9M16 12V9" },
   { key: "events", href: "/admin/events", label: "מפגשים והרשמות", icon: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM16 3v4M8 3v4M3 11h18" },
+  { key: "ads", href: "/admin/ads", label: "פרסומות", icon: "M3 5h18v11H3zM8 21h8M12 16v5M7 12l3-3 2 2 3-4 2 3" },
   { key: "content", href: "/admin/content", label: "תוכן האתר", icon: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" },
 ];
 

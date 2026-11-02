@@ -29,7 +29,11 @@ try {
     const html = await (await fetch(`${BASE}/login`)).text();
     ok("public /login sponsor logos", html.includes("beit-vegan.png") && html.includes("had-o-pan.png"));
   }
-  for (const path of ["/home", "/forum", "/admin"]) {
+  {
+    const r = await fetch(`${BASE}/api/cron/daily-digest`);
+    ok("cron daily-digest refuses without secret", r.status === 401, `status=${r.status}`);
+  }
+  for (const path of ["/home", "/forum", "/admin", "/admin/ads"]) {
     const r = await fetch(`${BASE}${path}`, { redirect: "manual" });
     ok(`gated ${path} redirects`, r.status >= 300 && r.status < 400 && (r.headers.get("location") ?? "").includes("/login"), `status=${r.status}`);
   }
@@ -48,12 +52,18 @@ try {
     const text = (await m.textContent("body")) ?? "";
     ok(`member ${path}`, needles.every((n) => text.includes(n)), needles.filter((n) => !text.includes(n)).join(","));
   }
+  {
+    await m.goto(`${BASE}/home`, { waitUntil: "networkidle" });
+    const n = await m.locator('[data-testid="ad-side"] img').count();
+    ok("member /home advertisement slot (QA ad from the seed)", n === 1, `imgs=${n}`);
+  }
 
   const a = await (await browser.newContext({ viewport: { width: 1440, height: 950 } })).newPage();
   await login(a, ADMIN);
   const adminChecks = [
     ["/admin", ["משתתפות", "ממתינות לאישור", "ייצוא לאקסל"]],
-    ["/admin/forum", ["מדורים", "הדיונים", "עריכה"]],
+    ["/admin/forum", ["מדורים", "הדיונים", "עריכה", "הסיכום היומי במייל", "שליחת דוגמה אליי"]],
+    ["/admin/ads", ["פרסומות", "העלאת פרסומת", "300 פיקסלים"]],
     ["/admin/inbox", ["פניות", "המעטפת בהרצה"]],
     ["/admin/content", ["תוכן האתר", "חיפוש טקסט", "תפריט ראשי", "שדות הטפסים", "מיילים מהמערכת", "מיילי אימות וסיסמה"]],
     ["/admin/millionaire", ["הצעות אירוח"]],

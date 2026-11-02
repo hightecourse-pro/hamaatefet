@@ -49,6 +49,7 @@ async function upsertUser(f) {
       status: f.status,
       approved_at: f.status === "active" ? new Date().toISOString() : null,
       remind_birthday: true,
+      daily_digest: true,
     })
     .eq("id", user.id);
   if (error) throw new Error(`profile ${f.email}: ${error.message}`);
@@ -73,6 +74,39 @@ await admin.from("forum_sections").delete().like("name", "QA %");
 await admin.from("forum_sections").update({ post_mode: "members", ask_label: "", rules: "" }).eq("key", "help");
 await admin.from("forum_sections").update({ post_mode: "team", ask_label: "", rules: "" }).in("key", ["content", "bts", "talk"]);
 await admin.from("settings").upsert({ key: "launch_nudge", value: { enabled: true } });
+await admin.from("settings").upsert({ key: "digest", value: { enabled: true } });
+
+// The advertisement slot: one QA ad (a generated 300×250 PNG) so the suite can see the slot and count a click.
+await admin.from("ads").delete().like("name", "QA %");
+{
+  const { deflateSync, crc32 } = await import("node:zlib");
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(td) >>> 0);
+    return Buffer.concat([len, td, crc]);
+  };
+  const w = 300, h = 250;
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; ihdr[9] = 2;
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const o = y * (w * 3 + 1) + 1 + x * 3;
+      const edge = x < 8 || y < 8 || x >= w - 8 || y >= h - 8;
+      raw[o] = edge ? 0x6e : 0xf6; raw[o + 1] = edge ? 0x0f : 0xd9; raw[o + 2] = edge ? 0x1a : 0xcb;
+    }
+  }
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+  const { error: upErr } = await admin.storage.from("ads").upload("qa/qa-ad.png", png, { contentType: "image/png", upsert: true });
+  if (upErr) throw new Error("qa ad upload: " + upErr.message);
+  const { error: adErr } = await admin.from("ads").insert({ name: "QA פרסומת", image_path: "qa/qa-ad.png", link_url: "https://example.com/qa", active: true });
+  if (adErr) throw new Error("qa ad insert: " + adErr.message);
+}
 await admin.from("site_content").delete().like("value", "QA %");
 await admin.from("site_content").delete().eq("key", "home.title");
 

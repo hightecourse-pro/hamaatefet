@@ -62,6 +62,51 @@ export async function sendEmailToMany(to: string[], subject: string, html: strin
   return out;
 }
 
+/**
+ * Many addresses in one go through Resend's batch endpoint (100 per request).
+ * The allowlist gate applies per address outside production; a failed batch counts as blocked.
+ */
+export async function sendEmailBatch(items: { to: string; subject: string; html: string }[]): Promise<{ sent: number; blocked: number; errors: string[] }> {
+  const out = { sent: 0, blocked: 0, errors: [] as string[] };
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    out.blocked = items.length;
+    out.errors.push("email_not_configured");
+    return out;
+  }
+  const allowed: Record<string, unknown>[] = [];
+  for (const it of items) {
+    const gate = emailGate(it.to);
+    if (!gate.ok) {
+      out.blocked++;
+      continue;
+    }
+    const body: Record<string, unknown> = { from: FROM, to: [it.to], subject: gate.subjectPrefix + it.subject, html: it.html };
+    if (REPLY_TO) body.reply_to = REPLY_TO;
+    allowed.push(body);
+  }
+  for (let i = 0; i < allowed.length; i += 100) {
+    const chunk = allowed.slice(i, i + 100);
+    try {
+      const post = () => fetch("https://api.resend.com/emails/batch", { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: JSON.stringify(chunk) });
+      let res = await post();
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 1200));
+        res = await post();
+      }
+      if (!res.ok) {
+        out.blocked += chunk.length;
+        out.errors.push(`resend_${res.status}: ${(await res.text()).slice(0, 140)}`);
+      } else out.sent += chunk.length;
+    } catch (e) {
+      out.blocked += chunk.length;
+      out.errors.push(e instanceof Error ? e.message : "send_failed");
+    }
+    if (i + 100 < allowed.length) await new Promise((r) => setTimeout(r, 600));
+  }
+  return out;
+}
+
 // ───────────────────────── templates ─────────────────────────
 
 const C = { plum: "#4A1942", crimson: "#A3304A", burgundy: "#6E0F1A", ground: "#FFF8F2", text: "#3A1530", muted: "#6A4558", line: "#F0E2D8", cream: "#FFF3EA" };
@@ -157,5 +202,45 @@ export function teamMessageEmail(c: Content, m: { kindLabel: string; name: strin
   return {
     subject: c.get("email.message.subject", v),
     html: layoutEmail({ footer: c.get("email.footer"), title: c.get("email.message.title", v), intro: c.get("email.message.intro", v), paragraphs: paragraphs.filter(Boolean), cta: { label: c.get("email.message.cta"), url: inboxUrl } }),
+  };
+}
+
+export interface DigestData {
+  dateLabel: string;
+  posts: { id: string; title: string; section: string; author: string }[];
+  threads: { id: string; title: string; comments: number }[];
+  events: { id: string; title: string; href: string; when: string }[];
+}
+
+/** The daily digest: new threads, threads that got comments, new calendar entries. */
+export function digestEmail(c: Content, firstName: string, d: DigestData, siteUrl: string): BuiltEmail {
+  const v = { שם: firstName || "", תאריך: d.dateLabel };
+  const link = (href: string, text: string) => `<a href="${href}" style="color:${C.burgundy};font-weight:700;text-decoration:none;">${esc(text)}</a>`;
+  const note = (text: string) => `<span style="color:${C.muted};font-size:15px;">· ${esc(text)}</span>`;
+  const block = (title: string, rows: string[]) => (rows.length ? `<b style="color:${C.crimson};">${esc(title)}</b><br>${rows.join("<br>")}` : "");
+  const paragraphs = [
+    block(
+      c.get("email.digest.posts_title"),
+      d.posts.map((p) => `${link(`${siteUrl}/forum/${p.id}`, p.title)} ${note(`${p.section} · ${c.get("email.digest.by", { שם: p.author })}`)}`)
+    ),
+    block(
+      c.get("email.digest.comments_title"),
+      d.threads.map((t) => `${link(`${siteUrl}/forum/${t.id}`, t.title)} ${note(c.get("email.digest.comments_line", { מספר: t.comments }))}`)
+    ),
+    block(
+      c.get("email.digest.events_title"),
+      d.events.map((e) => `${link(`${siteUrl}${e.href}`, e.title)} ${note(e.when)}`)
+    ),
+  ].filter(Boolean);
+  return {
+    subject: c.get("email.digest.subject", v),
+    html: layoutEmail({
+      footer: c.get("email.footer"),
+      title: c.get("email.digest.title", v),
+      intro: c.get("email.digest.intro", v),
+      paragraphs,
+      cta: { label: c.get("email.digest.cta"), url: `${siteUrl}/forum` },
+      footnote: `${esc(c.get("email.digest.footnote"))} <a href="${siteUrl}/profile" style="color:${C.crimson};">${esc(c.get("profile.title"))}</a>`,
+    }),
   };
 }

@@ -48,3 +48,15 @@ export async function saveDetails(_prev: ProfileState, fd: FormData): Promise<Pr
   revalidatePath("/profile");
   return { error: null, ok: note };
 }
+
+/** «עדכונים במייל»: the daily digest on or off for this member. */
+export async function saveMail(_prev: ProfileState, fd: FormData): Promise<ProfileState> {
+  const { userId } = await requireActive();
+  const c = await getContent();
+  const daily_digest = fd.get("digest") === "on";
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ daily_digest }).eq("id", userId);
+  if (error) return { error: c.get("profile.err.save") };
+  revalidatePath("/profile");
+  return { error: null, ok: c.get("profile.saved_mail") };
+}

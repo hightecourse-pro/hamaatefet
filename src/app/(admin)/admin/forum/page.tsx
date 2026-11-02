@@ -7,21 +7,37 @@ import { setPost, adminDeletePost, adminDeleteComment } from "../actions";
 import { ActionButton } from "../ui";
 import { NewSectionForm } from "./new-section-form";
 import { SectionEditor } from "./section-editor";
+import { DigestCard } from "./digest-card";
+import { DIGEST_HOUR, DIGEST_MINUTE } from "@/lib/digest";
 
 export const metadata = { title: "הפורום" };
 
 const weekAgoIso = () => new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 
 export default async function AdminForumPage() {
-  await requireAdmin();
+  const { email } = await requireAdmin();
   const admin = createAdminClient();
   const since = weekAgoIso();
-  const [{ data: sections }, { data: posts }, { data: recentComments }, { data: allPosts }] = await Promise.all([
+  const [{ data: sections }, { data: posts }, { data: recentComments }, { data: allPosts }, { data: settingRows }] = await Promise.all([
     admin.from("forum_sections").select("*").order("sort_order"),
     admin.from("posts").select("id, title, created_at, status, pinned, forum_sections(name), profiles!posts_author_id_fkey(first_name, last_name)").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(60),
     admin.from("comments").select("id, body, created_at, post_id, profiles(first_name, last_name), posts(title)").gte("created_at", since).order("created_at", { ascending: false }).limit(30),
     admin.from("posts").select("section_id"),
+    admin.from("settings").select("key, value").in("key", ["digest", "digest_last"]),
   ]);
+  const setting: Record<string, Record<string, unknown>> = {};
+  for (const r of settingRows ?? []) setting[r.key] = (r.value ?? {}) as Record<string, unknown>;
+  const digestOn = setting.digest?.enabled !== false;
+  const last = setting.digest_last;
+  const n = (v: unknown) => Number(v ?? 0);
+  let lastLabel = "עוד לא נשלח סיכום.";
+  if (last && typeof last.at === "string") {
+    const when = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(last.at));
+    lastLabel = last.quiet
+      ? `הריצה האחרונה: ${when} – יום שקט, לא נשלח מייל.`
+      : `נשלח לאחרונה: ${when} · ${n(last.sent)} נמענות${n(last.blocked) ? ` (${n(last.blocked)} נחסמו)` : ""} · ${n(last.posts)} דיונים חדשים, ${n(last.threads)} דיונים שהמשיכו, ${n(last.events)} מפגשים חדשים.`;
+  }
+  const digestTime = `${DIGEST_HOUR}:${String(DIGEST_MINUTE).padStart(2, "0")}`;
   const perSection = new Map<string, number>();
   for (const p of allPosts ?? []) perSection.set(p.section_id, (perSection.get(p.section_id) ?? 0) + 1);
   const counts = new Map<string, number>();
@@ -46,6 +62,7 @@ export default async function AdminForumPage() {
       </div>
 
       <div style={{ flex: "999 1 420px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+        <DigestCard enabled={digestOn} lastLabel={lastLabel} email={email} time={digestTime} />
         <div style={{ background: "#FFFFFF", border: "2px solid #F0E2D8", borderRadius: 24, padding: 22, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>

@@ -11,13 +11,14 @@ import { parseAgenda } from "@/lib/agenda";
 import { CONTENT_GROUPS, contentFrom, getContent } from "@/lib/content";
 import { pushAuthTemplates } from "@/lib/auth-mail";
 import { sanitizeRich } from "@/lib/rich-text";
+import { sendDigestSample } from "@/lib/digest";
 
 export interface AdminState {
   error: string | null;
   ok?: string | null;
 }
 
-const ALL_ADMIN = ["/admin", "/admin/forum", "/admin/inbox", "/admin/millionaire", "/admin/birthday", "/admin/events"];
+const ALL_ADMIN = ["/admin", "/admin/forum", "/admin/inbox", "/admin/millionaire", "/admin/birthday", "/admin/events", "/admin/ads"];
 function revalidateAdmin(extra: string[] = []) {
   for (const p of [...ALL_ADMIN, ...extra]) revalidatePath(p);
 }
@@ -348,4 +349,78 @@ export async function saveContentGroup(groupKey: string, _prev: AdminState, fd: 
     return { error: null, ok: "נשמר. השינויים כבר באתר, ומיילי האימות עודכנו אצל ספק ההזדהות." };
   }
   return { error: null, ok: "נשמר. השינויים כבר באתר." };
+}
+
+// ───────────────────────── daily digest ─────────────────────────
+
+/** The daily digest e-mail – on or off for everyone (each member keeps her own switch in «החשבון שלי»). */
+export async function setDigestEnabled(enabled: boolean): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("settings").upsert({ key: "digest", value: { enabled }, updated_at: new Date().toISOString() });
+  if (error) return { error: "לא הצלחנו לשמור." };
+  revalidateAdmin();
+  return { error: null, ok: enabled ? "הסיכום היומי פעיל." : "הסיכום היומי כבוי." };
+}
+
+/** The last seven days as one digest, to the signed-in admin only; nothing is recorded. */
+export async function sendDigestSampleToMe(): Promise<AdminState> {
+  const { profile, email } = await requireAdmin();
+  const r = await sendDigestSample(email, profile.first_name);
+  if (r.ok) return { error: null, ok: `נשלחה דוגמה אל ${email} (${r.posts} דיונים חדשים, ${r.threads} שהמשיכו, ${r.events} מפגשים).` };
+  if (r.error === "empty") return { error: "לא נשלח: לא היו דיונים או מפגשים חדשים בשבוע האחרון." };
+  if (r.error === "blocked_by_allowlist") return { error: "לא נשלח: מחוץ לפרודקשן מיילים יוצאים רק לכתובות מאושרות." };
+  return { error: `לא נשלח: ${r.error}` };
+}
+
+// ───────────────────────── advertisements ─────────────────────────
+
+const AD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+
+export async function addAd(_prev: AdminState, fd: FormData): Promise<AdminState> {
+  await requireAdmin();
+  const name = String(fd.get("name") ?? "").trim().slice(0, 80);
+  const link_url = String(fd.get("link_url") ?? "").trim().slice(0, 500);
+  const active = fd.get("active") === "on";
+  const file = fd.get("image");
+  if (!name) return { error: "תני לפרסומת שם." };
+  if (link_url && !/^https?:\/\/\S+$/i.test(link_url)) return { error: "הקישור צריך להתחיל ב-https://" };
+  if (!(file instanceof File) || file.size === 0) return { error: "בחרי קובץ תמונה." };
+  const ext = AD_TYPES[file.type];
+  if (!ext) return { error: "JPG, PNG, WebP או GIF בלבד." };
+  if (file.size > 2 * 1024 * 1024) return { error: "התמונה גדולה מ-2MB." };
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const admin = createAdminClient();
+  const { error: upErr } = await admin.storage.from("ads").upload(path, file, { contentType: file.type, cacheControl: "31536000" });
+  if (upErr) return { error: `ההעלאה נכשלה: ${upErr.message}` };
+  const { error } = await admin.from("ads").insert({ name, image_path: path, link_url, active });
+  if (error) {
+    await admin.storage.from("ads").remove([path]);
+    return { error: "לא הצלחנו לשמור." };
+  }
+  revalidatePath("/", "layout");
+  revalidateAdmin();
+  return { error: null, ok: "הפרסומת הועלתה." };
+}
+
+export async function setAdActive(id: string, active: boolean): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("ads").update({ active }).eq("id", id);
+  if (error) return { error: "לא הצלחנו לשמור." };
+  revalidatePath("/", "layout");
+  revalidateAdmin();
+  return { error: null, ok: active ? "מוצגת." : "מוסתרת." };
+}
+
+export async function deleteAd(id: string): Promise<AdminState> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data: ad } = await admin.from("ads").select("image_path").eq("id", id).maybeSingle();
+  const { error } = await admin.from("ads").delete().eq("id", id);
+  if (error) return { error: "לא הצלחנו למחוק." };
+  if (ad?.image_path) await admin.storage.from("ads").remove([ad.image_path]);
+  revalidatePath("/", "layout");
+  revalidateAdmin();
+  return { error: null, ok: "נמחקה." };
 }
