@@ -12,7 +12,15 @@ if (!env) {
 }
 const ref = refFor(env);
 
-const ledger = await sql(ref, "create table if not exists public._migrations (name text primary key, applied_at timestamptz not null default now()); select name from public._migrations order by name");
+// The ledger is created here, outside any migration, so it is locked here too:
+// RLS on, no API-role grants (the runner connects as postgres and bypasses RLS).
+const ledger = await sql(
+  ref,
+  "create table if not exists public._migrations (name text primary key, applied_at timestamptz not null default now()); " +
+    "alter table public._migrations enable row level security; " +
+    "revoke all on table public._migrations from anon, authenticated; " +
+    "select name from public._migrations order by name"
+);
 if (!ledger.ok) {
   console.log("FAILED reading ledger", ledger.error.slice(0, 300));
   process.exit(1);
